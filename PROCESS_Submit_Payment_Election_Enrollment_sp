@@ -1,0 +1,10 @@
+select lce.EMPLOYEE as Worker_Reference_ID,
+'USA' as Worker_Country_Reference_ID,
+'USD' as Worker_Currency_Reference_ID,
+lce.DEFAULT_FLAG ,
+'Y' if lce.default_flag='Y' as Election_Order,
+'Direct_deposit' as Payment_Type_Reference_ID,
+'USA' as Bank_Account_Country_Reference_ID,
+'USD' as Bank_Account_Currency_Reference_ID
+from `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emachdepst` lce, `prj-pvt-oneerp-data-raw-78c9.lawson_chi.employee` emp
+where lce.END_DATE is NULL

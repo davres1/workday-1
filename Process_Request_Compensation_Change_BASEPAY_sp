@@ -1,0 +1,117 @@
+CREATE OR REPLACE PROCEDURE `prj-dev-ss-oneerp.oneerp.process_request_comp_change`()
+
+BEGIN
+
+-- Initilize process and workday delivery tables
+
+TRUNCATE TABLE oneerp.process_request_comp_change;
+
+TRUNCATE TABLE workday.workday_request_comp_change;
+
+-- Process each raw source system tables into the process table
+
+INSERT INTO oneerp.process_request_comp_change (
+  Employee_ID,
+  Employee_Reference_ID_Type,
+  Position_ID,
+  Position_Reference_ID_Type,
+  Employee_Visibility_Date,
+  Reason_Reference_ID,
+  Reason_Reference_ID_Type,
+  Compensation_Change_Date,
+  Compensation_Change_On_Next_Pay_Period,
+  Override_Compensation_Basis_Calculation,
+  Compensation_Package_Reference_ID,
+  Compensation_Package_Reference_ID_Type,
+  Compensation_Grade_Reference_ID,
+  Compensation_Grade_Reference_ID_Type,
+  Compensation_Grade_Profile_Reference_ID,
+  Compensation_Grade_Profile_Reference_ID_Type,
+  Compensation_Step_Reference_ID,
+  Compensation_Step_Reference_ID_Type,
+  Progression_Start_Date,
+  Pay_Plan_Data_Replace,
+  Pay_Plan_Reference_ID,
+  Pay_Plan_Reference_ID_Type,
+  Pay_Plan_Currency_Reference_ID,
+  Pay_Plan_Currency_Reference_ID_Type,
+  Pay_Plan_Frequency_ID,
+  Pay_Plan_Frequency_ID_Type,
+  Pay_Plan_Expected_End_Date,
+  Pay_Plan_Actual_End_Date,
+  Pay_Plan_Amount,
+  Pay_Plan_Percent_Change,
+  Pay_Plan_Amount_Change,
+  Primary_Compensation_Basis,
+  Primary_Compensation_Basis_Amount_Change,
+  Primary_Compensation_Basis_Percent_Change,
+  Skip
+)
+SELECT
+  papf.employee_number AS Employee_ID,
+  '' AS Employee_Reference_ID_Type,
+  paaf.assignment_number AS Position_ID,
+  '' AS Position_Reference_ID_Type,
+  '' AS Employee_Visibility_Date,
+  ppp.proposal_reason AS Reason_Reference_ID,
+  '' AS Reason_Reference_ID_Type,
+  TO_CHAR(ppp.change_date, 'YYYY-MM-DD') AS Compensation_Change_Date,
+  '' AS Compensation_Change_On_Next_Pay_Period,
+  '' AS Override_Compensation_Basis_Calculation,
+  '' AS Compensation_Package_Reference_ID,
+  '' AS Compensation_Package_Reference_ID_Type,
+  CONCAT(papf.employee_number, '_', pjd.segment1) AS Compensation_Grade_Reference_ID,  -- Concatenated as per note; adjust if xwalk table is available
+  '' AS Compensation_Grade_Reference_ID_Type,
+  pjd.segment1 AS Compensation_Grade_Profile_Reference_ID,
+  '' AS Compensation_Grade_Profile_Reference_ID_Type,
+  hgs.grade_step AS Compensation_Step_Reference_ID,
+  '' AS Compensation_Step_Reference_ID_Type,
+  TO_CHAR(psppf.effective_start_date, 'YYYY-MM-DD') AS Progression_Start_Date,
+  '' AS Pay_Plan_Data_Replace,
+  '' AS Pay_Plan_Reference_ID,
+  '' AS Pay_Plan_Reference_ID_Type,
+  '' AS Pay_Plan_Currency_Reference_ID,
+  '' AS Pay_Plan_Currency_Reference_ID_Type,
+  '' AS Pay_Plan_Frequency_ID,
+  '' AS Pay_Plan_Frequency_ID_Type,
+  '' AS Pay_Plan_Expected_End_Date,
+  '' AS Pay_Plan_Actual_End_Date,
+  TO_CHAR(ppp.proposed_salary_n) AS Pay_Plan_Amount,
+  '' AS Pay_Plan_Percent_Change,
+  '' AS Pay_Plan_Amount_Change,
+  '' AS Primary_Compensation_Basis,
+  '' AS Primary_Compensation_Basis_Amount_Change,
+  '' AS Primary_Compensation_Basis_Percent_Change,
+  '' AS Skip
+FROM
+  per_all_people_f papf
+JOIN
+  per_all_assignments_f paaf
+  ON papf.person_id = paaf.person_id
+  AND TRUNC(SYSDATE) BETWEEN paaf.effective_start_date AND paaf.effective_end_date
+JOIN
+  per_pay_proposals ppp
+  ON ppp.assignment_id = paaf.assignment_id
+  AND ppp.pay_proposal_id = (
+    SELECT MAX(pay_proposal_id)
+    FROM per_pay_proposals ppp2
+    WHERE ppp2.assignment_id = paaf.assignment_id
+  )
+JOIN
+  per_job_definitions pjd  -- Assuming table name; may be per_jobs in some versions
+  ON paaf.job_id = pjd.job_id
+LEFT JOIN
+  hrfv_grade_steps hgs  -- Assuming join on assignment_id or grade_id; adjust as needed
+  ON paaf.assignment_id = hgs.assignment_id  -- Placeholder join; verify schema
+LEFT JOIN
+  per_spinal_point_placements_f psppf
+  ON paaf.assignment_id = psppf.assignment_id
+  AND TRUNC(SYSDATE) BETWEEN psppf.effective_start_date AND psppf.effective_end_date
+WHERE
+  TRUNC(SYSDATE) BETWEEN papf.effective_start_date AND papf.effective_end_date
+  AND papf.current_employee_flag = 'Y'
+  AND paaf.primary_flag = 'Y';  -- Assuming primary assignments
+
+
+
+END

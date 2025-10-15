@@ -1,0 +1,395 @@
+[
+  {
+    "name": "COMPANY",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EMPLOYEE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ACH_DIST_NBR",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "OCCURANCES",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "REMAIN_OCCUR",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EBANK_ID",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EBNK_ACCT_NBR",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ACCOUNT_TYPE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ACH_PRENOTIFY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "NET_PERCENT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DEPOSIT_AMT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DESCRIPTION",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CHECK_DESC",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "BEG_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "END_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_01",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_02",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_03",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_04",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_05",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_06",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_07",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_08",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DED_CYCLE_09",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DEFAULT_FLAG",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "BANK_ROLL_NO",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ACH_DIST_ORDER",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CA_INST_NBR",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CA_TRANSIT_NBR",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "COUNTRY_CODE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CURRENCY_CODE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CURR_ND",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PENS_SEQ_NBR",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "NON_STD_ENTRY",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ORIG_ACCT_NBR",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PAYABLE_TO",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PRINT_RCPT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CREATE_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CREATE_TIME",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CREATE_USER_ID",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DATE_STAMP",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TIME_STAMP",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "USER_ID",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "OBJ_ID",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "IAT_ACH",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "IN_MICR_NO",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "IFSC",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EADSET2_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EADSET3_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EADSET4_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EADSET5_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EADSET7_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EADSET8_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EADSET9_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "_LoadDTTM",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "_UpdateDTTM",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  }
+]
+

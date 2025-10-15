@@ -1,0 +1,926 @@
+[
+  {
+    "name": "COMPANY",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EMPLOYEE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "LAST_NAME",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FIRST_NAME",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "MIDDLE_INIT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "MIDDLE_NAME",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "NICK_NAME",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADDR1",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADDR2",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADDR3",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADDR4",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CITY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "STATE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ZIP",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EMP_STATUS",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FICA_NBR",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EIC_STATUS",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PROCESS_LEVEL",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DEPARTMENT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "USER_LEVEL",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "HM_DIST_CO",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "HM_ACCT_UNIT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "HM_ACCOUNT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "HM_SUB_ACCT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "JOB_CODE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "UNION_CODE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SUPERVISOR",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DATE_HIRED",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PAY_FREQUENCY",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "R_SHIFT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SALARY_CLASS",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EXEMPT_EMP",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PAY_RATE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "STAND_HOURS",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "STAND_AMT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WARN_FLAG",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADD_ALLOW_PER",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADD_ALLOW_HRS",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADD_ALLOW_AMT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "RPT_INS_COST",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "AUTO_TIME_REC",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "LAST_DED_SEQ",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "AUTO_DEPOSIT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ADJ_HIRE_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ANNIVERS_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TERM_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "LAST_CMT_SEQ",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CREATION_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "NBR_FTE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PENSION_PLAN",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PAY_STEP",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PAY_GRADE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SCHEDULE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EBE_AMOUNT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SICK_PAY",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "OT_PLAN_CODE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DECEASED",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "BSI_GROUP",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WORK_STATE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TAX_STATE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TAX_PROVINCE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WC_STATE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TAX_COUNTY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TAX_CITY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "MOVING_EXP",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ALT_RATE_EXIST",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PEND_ACT_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PIN",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TIPPED",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EMAIL_ADDRESS",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ACTIVITY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ACCT_CATEGORY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "MAX_LIMIT_OVRD",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SEC_LVL",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SEC_LOCATION",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "POSITION",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WORK_SCHED",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SUPERVISOR_IND",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ANNUAL_HOURS",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WORK_COUNTY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WORK_CITY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WORK_SCHOOL",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WORK_TRANSPORT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TAX_SCHOOL",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TAX_TRANSPORT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FTE_TOTAL",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PRO_RATE_TOTAL",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PRO_RATE_A_SAL",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "NEW_HIRE_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CURRENCY_CODE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "CURR_ND",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "COUNTRY_CODE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "NAME_PREFIX",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "NAME_SUFFIX",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WORK_COUNTRY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "LAST_NAME_PRE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EST_REMUN",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EST_EXPENSE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "BUS_NBR_GRP",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "QC_ENT_NBR_GRP",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "WC_PROVINCE",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "COUNTY",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "RAILROAD_CODE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FST_DAY_WORKED",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "LAST_DAY_PAID",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "LAB_DIST_FLAG",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ENCUMBER_FLAG",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EFFORT_FLAG",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "RPT_CURR",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PRMCERT_ID",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SNDCERT_ID",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FRNG_RATE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FRNG_ACCT_CAT",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FRNG_ACCOUNT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FRNG_SUB_ACCT",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "DEATH_DATE",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "TAX_FILTER",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "REMOTE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PUB_SEC_RETIRE",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "PRMCERT_COMP",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "SNDCERT_COMP",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "ST_STATUS",
+    "mode": "",
+    "type": "BIGNUMERIC",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "LAST_NAME_UC",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FIRST_NAME_UC",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "FICA_NBR_LAST4",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "EMAIL_PERSONAL",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "UPDATED_BY_LTM",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "HICN",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "L_INDEX",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "L_ATEMP_SS_SW",
+    "mode": "",
+    "type": "STRING",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "_LoadDTTM",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  },
+  {
+    "name": "_UpdateDTTM",
+    "mode": "",
+    "type": "DATETIME",
+    "description": "",
+    "fields": []
+  }
+]
