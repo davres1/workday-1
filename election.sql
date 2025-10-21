@@ -183,7 +183,7 @@ SELECT
   'REGULAR_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(CASE
-    WHEN r.DEFAULT_FLAG = 'Y' THEN GREATEST(CAST(r.ACH_DIST_NBR AS INT64), r.distribution_count)
+    WHEN r.DEFAULT_FLAG = 'Y' THEN r.distribution_count
     ELSE r.non_default_rank
   END AS STRING) AS Election_Order,
   '' AS Payment_Election_Rule_ID,
@@ -288,7 +288,7 @@ SELECT
   'REGULAR_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(CASE
-    WHEN r.DEFAULT_FLAG = 'Y' THEN GREATEST(CAST(r.ACH_DIST_NBR AS INT64), r.distribution_count)
+    WHEN r.DEFAULT_FLAG = 'Y' THEN r.distribution_count
     ELSE r.non_default_rank
   END AS STRING) AS Election_Order,
   '' AS Payment_Election_Rule_ID,
