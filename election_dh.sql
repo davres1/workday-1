@@ -12,7 +12,7 @@ WITH
       lce.ACCOUNT_TYPE,
       lce.DEPOSIT_AMT,
       lce.NET_PERCENT,
-      lce.`COUNTRY-CODE` AS COUNTRY_CODE
+      lce.`COUNTRY_CODE` AS COUNTRY_CODE
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
     LEFT JOIN
@@ -46,7 +46,7 @@ SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
   CAST(r.EMPLOYEE AS STRING) AS Worker_Reference_ID,
   '' AS Worker_Reference_ID_Type,
-  r.COUNTRY-CODE AS Worker_Country_Reference_ID,
+  r.COUNTRY_CODE AS Worker_Country_Reference_ID,
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
