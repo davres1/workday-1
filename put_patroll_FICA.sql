@@ -36,7 +36,7 @@ CREATE TABLE `workday.workday_Put_Payroll_Payee_FICA_OASDIs` (
   OASDI_Reason_for_Exemption_Reference_ID_Type STRING
 );
 
--- Insert into process table (WITH clause inside INSERT; all numeric source columns CAST to STRING)
+-- Insert into process table (WITH clause inside INSERT; Fixed type mismatch: CAST all numeric columns to STRING in both SELECTs)
 INSERT INTO `oneerp.process_Put_Payroll_Payee_FICA_OASDIs` (
   Add_Only,
   Payroll_Payee_FICA_Reference_ID,
@@ -55,25 +55,26 @@ INSERT INTO `oneerp.process_Put_Payroll_Payee_FICA_OASDIs` (
 )
 WITH payroll_data AS (
   SELECT
-    e.EMPLOYEE AS Worker_Reference_ID,
-    pos.Position AS Position_Reference_ID,
+    CAST(e.EMPLOYEE AS STRING) AS Worker_Reference_ID,
+    CAST(pos.Position AS STRING) AS Position_Reference_ID,
     '1' AS All_Positions,
     pos.End_Date AS Effective_As_Of,
     'NeedClarificationfromWD' AS Apply_To_Worker,
-    CASE 
+    CASE
       WHEN e.TERM_DATE = DATE '1700-01-01'
-        AND e.EMP_STATUS NOT LIKE 'T%'
+        AND e.emp_status NOT IN ('T2', 'C1', 'C2')
         AND EXISTS (
-          SELECT 1 
+          SELECT 1
           FROM `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emdedmastr` edm
-          JOIN `prj-dev-ss-oneerp.lawson_chi.dedcode` dc 
+          JOIN `prj-dev-ss-oneerp.lawson_chi.dedcode` dc
             ON edm.Ded_Code = dc.Ded_Code
           WHERE edm.EMPLOYEE = e.EMPLOYEE
+            AND edm.Company = 8900
             AND edm.End_Date <> DATE '1700-01-01'
             AND dc.TAX_CATEGORY IN (3, 4)
         )
-      THEN 1 
-      ELSE 0 
+      THEN 1
+      ELSE 0
     END AS Exempt_from_OASDI,
     '' AS OASDI_Reason_for_Exemption_Reference_ID
   FROM
@@ -84,42 +85,39 @@ WITH payroll_data AS (
     AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
   UNION ALL
   SELECT
-    e.EMPLOYEE AS Worker_Reference_ID,
-    pos.Position AS Position_Reference_ID,
+    CAST(pa.Mb_Nbr AS STRING) AS Worker_Reference_ID,
+    CAST(pos.Position AS STRING) AS Position_Reference_ID,
     '1' AS All_Positions,
     pos.End_Date AS Effective_As_Of,
     'NeedClarificationfromWD' AS Apply_To_Worker,
-    CASE 
-      WHEN e.TERM_DATE = DATE '1700-01-01'
-        AND e.EMP_STATUS NOT LIKE 'T%'
-        AND EXISTS (
-          SELECT 1 
-          FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emdedmastr` edm
-          JOIN `prj-dev-ss-oneerp.lawson_dh.dedcode` dc 
-            ON edm.Ded_Code = dc.Ded_Code
-          WHERE edm.EMPLOYEE = e.EMPLOYEE
-            AND edm.End_Date <> DATE '1700-01-01'
-            AND dc.TAX_CATEGORY IN (3, 5)
-        )
-      THEN 1 
-      ELSE 0 
-    END AS Exempt_from_OASDI,
+    1 AS Exempt_from_OASDI,
     '' AS OASDI_Reason_for_Exemption_Reference_ID
-  FROM
-    `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` e
-  LEFT JOIN
-    `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemppos` pos
-    ON e.EMPLOYEE = pos.EMPLOYEE
+  FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemployee` pa
+  JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
+    ON pa.EMPLOYEE = emp.EMPLOYEE
+  JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemppos` pos
+    ON pa.EMPLOYEE = pos.EMPLOYEE
+  WHERE pa.Company = 100
+    AND emp.emp_status NOT IN ('T2', 'ZI', 'ZA')
     AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
+    AND EXISTS (
+      SELECT 1
+      FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emdedmastr` edm
+      JOIN `prj-dev-ss-oneerp.lawson_dh.dedcode` dc
+        ON edm.Ded_Code = dc.Ded_Code
+      WHERE edm.EMPLOYEE = pa.EMPLOYEE
+        AND edm.End_Date <> DATE '1700-01-01'
+        AND dc.TAX_CATEGORY IN (3, 5)
+    )
 )
 SELECT
   CAST(NULL AS STRING) AS Add_Only,
   CAST(NULL AS STRING) AS Payroll_Payee_FICA_Reference_ID,
   CAST(NULL AS STRING) AS Payroll_Payee_FICA_Reference_ID_Type,
   CAST(NULL AS STRING) AS ID,
-  CAST(Worker_Reference_ID AS STRING) AS Worker_Reference_ID,
+  Worker_Reference_ID,
   CAST(NULL AS STRING) AS Worker_Reference_ID_Type,
-  CAST(Position_Reference_ID AS STRING) AS Position_Reference_ID,
+  Position_Reference_ID,
   CAST(NULL AS STRING) AS Position_Reference_ID_Type,
   All_Positions,
   CAST(Effective_As_Of AS STRING) AS Effective_As_Of,
@@ -130,7 +128,7 @@ SELECT
 FROM payroll_data
 ORDER BY Worker_Reference_ID, Effective_As_Of;
 
--- Insert into workday table (same structure; all numeric source columns CAST to STRING)
+-- Insert into workday table (same structure; Fixed type mismatch with CASTs)
 INSERT INTO `workday.workday_Put_Payroll_Payee_FICA_OASDIs` (
   Add_Only,
   Payroll_Payee_FICA_Reference_ID,
@@ -149,25 +147,26 @@ INSERT INTO `workday.workday_Put_Payroll_Payee_FICA_OASDIs` (
 )
 WITH payroll_data AS (
   SELECT
-    e.EMPLOYEE AS Worker_Reference_ID,
-    pos.Position AS Position_Reference_ID,
+    CAST(e.EMPLOYEE AS STRING) AS Worker_Reference_ID,
+    CAST(pos.Position AS STRING) AS Position_Reference_ID,
     '1' AS All_Positions,
     pos.End_Date AS Effective_As_Of,
     'NeedClarificationfromWD' AS Apply_To_Worker,
-    CASE 
+    CASE
       WHEN e.TERM_DATE = DATE '1700-01-01'
-        AND e.EMP_STATUS NOT LIKE 'T%'
+        AND e.emp_status NOT IN ('T2', 'C1', 'C2')
         AND EXISTS (
-          SELECT 1 
+          SELECT 1
           FROM `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emdedmastr` edm
-          JOIN `prj-dev-ss-oneerp.lawson_chi.dedcode` dc 
+          JOIN `prj-dev-ss-oneerp.lawson_chi.dedcode` dc
             ON edm.Ded_Code = dc.Ded_Code
           WHERE edm.EMPLOYEE = e.EMPLOYEE
+            AND edm.Company = 8900
             AND edm.End_Date <> DATE '1700-01-01'
             AND dc.TAX_CATEGORY IN (3, 4)
         )
-      THEN 1 
-      ELSE 0 
+      THEN 1
+      ELSE 0
     END AS Exempt_from_OASDI,
     '' AS OASDI_Reason_for_Exemption_Reference_ID
   FROM
@@ -178,42 +177,39 @@ WITH payroll_data AS (
     AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
   UNION ALL
   SELECT
-    e.EMPLOYEE AS Worker_Reference_ID,
-    pos.Position AS Position_Reference_ID,
+    CAST(pa.Mb_Nbr AS STRING) AS Worker_Reference_ID,
+    CAST(pos.Position AS STRING) AS Position_Reference_ID,
     '1' AS All_Positions,
     pos.End_Date AS Effective_As_Of,
     'NeedClarificationfromWD' AS Apply_To_Worker,
-    CASE 
-      WHEN e.TERM_DATE = DATE '1700-01-01'
-        AND e.EMP_STATUS NOT LIKE 'T%'
-        AND EXISTS (
-          SELECT 1 
-          FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emdedmastr` edm
-          JOIN `prj-dev-ss-oneerp.lawson_dh.dedcode` dc 
-            ON edm.Ded_Code = dc.Ded_Code
-          WHERE edm.EMPLOYEE = e.EMPLOYEE
-            AND edm.End_Date <> DATE '1700-01-01'
-            AND dc.TAX_CATEGORY IN (3, 5)
-        )
-      THEN 1 
-      ELSE 0 
-    END AS Exempt_from_OASDI,
+    1 AS Exempt_from_OASDI,
     '' AS OASDI_Reason_for_Exemption_Reference_ID
-  FROM
-    `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` e
-  LEFT JOIN
-    `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemppos` pos
-    ON e.EMPLOYEE = pos.EMPLOYEE
+  FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemployee` pa
+  JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
+    ON pa.EMPLOYEE = emp.EMPLOYEE
+  JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemppos` pos
+    ON pa.EMPLOYEE = pos.EMPLOYEE
+  WHERE pa.Company = 100
+    AND emp.emp_status NOT IN ('T2', 'ZI', 'ZA')
     AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
+    AND EXISTS (
+      SELECT 1
+      FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emdedmastr` edm
+      JOIN `prj-dev-ss-oneerp.lawson_dh.dedcode` dc
+        ON edm.Ded_Code = dc.Ded_Code
+      WHERE edm.EMPLOYEE = pa.EMPLOYEE
+        AND edm.End_Date <> DATE '1700-01-01'
+        AND dc.TAX_CATEGORY IN (3, 5)
+    )
 )
 SELECT
   CAST(NULL AS STRING) AS Add_Only,
   CAST(NULL AS STRING) AS Payroll_Payee_FICA_Reference_ID,
   CAST(NULL AS STRING) AS Payroll_Payee_FICA_Reference_ID_Type,
   CAST(NULL AS STRING) AS ID,
-  CAST(Worker_Reference_ID AS STRING) AS Worker_Reference_ID,
+  Worker_Reference_ID,
   CAST(NULL AS STRING) AS Worker_Reference_ID_Type,
-  CAST(Position_Reference_ID AS STRING) AS Position_Reference_ID,
+  Position_Reference_ID,
   CAST(NULL AS STRING) AS Position_Reference_ID_Type,
   All_Positions,
   CAST(Effective_As_Of AS STRING) AS Effective_As_Of,
