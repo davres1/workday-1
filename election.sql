@@ -46,7 +46,7 @@ CREATE TABLE `prj-dev-ss-oneerp.oneerp.process_submit_payment_election_enrollmen
 DROP TABLE IF EXISTS `prj-dev-ss-oneerp.workday.workday_submit_payment_election_enrollment`;
 CREATE TABLE `prj-dev-ss-oneerp.workday.workday_submit_payment_election_enrollment` AS
 SELECT * FROM `prj-dev-ss-oneerp.oneerp.process_submit_payment_election_enrollment`
-WHERE 1=0;  -- Empty table with same schema
+WHERE 1=0; -- Empty table with same schema
 
 -- Truncate tables
 TRUNCATE TABLE `prj-dev-ss-oneerp.oneerp.process_submit_payment_election_enrollment`;
@@ -127,7 +127,7 @@ WITH
       NET_PERCENT,
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END 
+        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
@@ -165,7 +165,7 @@ WITH
       NET_PERCENT,
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END 
+        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
@@ -205,11 +205,51 @@ WITH
       COUNTRY_CODE,
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END 
+        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
       base_data_sta
+  ),
+  base_data_hah AS (
+    SELECT
+      distrib.EMPLID AS EMPLOYEE,
+      CASE WHEN distrib.DEPOSIT_TYPE = 'B' THEN 'Y' ELSE 'N' END AS DEFAULT_FLAG,
+      distrib.PRIORITY AS ACH_DIST_NBR,
+      bank.BANK_NM AS DESCRIPTION,
+      distrib.ACCOUNT_NUM AS EBNK_ACCT_NBR,
+      distrib.BANK_CD AS EBANK_ID,
+      distrib.ACCOUNT_TYPE AS ACCOUNT_TYPE,
+      distrib.DEPOSIT_AMT AS DEPOSIT_AMT,
+      distrib.AMOUNT_PCT AS NET_PERCENT,
+      distrib.COUNTRY_CD AS COUNTRY_CODE,
+      distrib.NICK_NAME AS NICKNAME
+    FROM
+      `prj-dev-ss-oneerp.hah_psoft_hrp.ps_dir_dep_distrib` distrib
+    LEFT JOIN
+      `prj-dev-ss-oneerp.hah_psoft_hrp.ps_bank_ec_tbl` bank
+      ON distrib.BANK_CD = bank.BANK_CD
+  ),
+  ranked_data_hah AS (
+    SELECT
+      EMPLOYEE,
+      DEFAULT_FLAG,
+      ACH_DIST_NBR,
+      DESCRIPTION,
+      EBNK_ACCT_NBR,
+      EBANK_ID,
+      ACCOUNT_TYPE,
+      DEPOSIT_AMT,
+      NET_PERCENT,
+      COUNTRY_CODE,
+      NICKNAME,
+      COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
+      DENSE_RANK() OVER (
+        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
+        ORDER BY CAST(ACH_DIST_NBR AS INT64)
+      ) AS non_default_rank
+    FROM
+      base_data_hah
   )
 -- CHI: Regular Payments (all accounts)
 SELECT
@@ -261,9 +301,7 @@ SELECT
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance
 FROM 
   ranked_data_chi r
-
 UNION ALL
-
 -- CHI: Supplemental Payments (defaults only)
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
@@ -313,9 +351,7 @@ FROM
   ranked_data_chi r
 WHERE
   r.DEFAULT_FLAG = 'Y'
-
 UNION ALL
-
 -- MTN: Regular Payments (all accounts)
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
@@ -366,9 +402,7 @@ SELECT
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance
 FROM 
   ranked_data_mtn r
-
 UNION ALL
-
 -- MTN: Supplemental Payments (defaults only)
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
@@ -418,9 +452,7 @@ FROM
   ranked_data_mtn r
 WHERE
   r.DEFAULT_FLAG = 'Y'
-
 UNION ALL
-
 -- STA: Regular Payments (all accounts)
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
@@ -469,11 +501,9 @@ SELECT
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance
-FROM 
+FROM
   ranked_data_sta r
-
 UNION ALL
-
 -- STA: Supplemental Payments (defaults only)
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
@@ -521,6 +551,107 @@ SELECT
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance
 FROM
   ranked_data_sta r
+WHERE
+  r.DEFAULT_FLAG = 'Y'
+UNION ALL
+-- HAH: Regular Payments (all accounts)
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  CAST(r.EMPLOYEE AS STRING) AS Worker_Reference_ID,
+  '' AS Worker_Reference_ID_Type,
+  COALESCE(r.COUNTRY_CODE, 'USA') AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  'USD' AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  'REGULAR_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(CASE
+    WHEN r.DEFAULT_FLAG = 'Y' THEN r.distribution_count
+    ELSE r.non_default_rank
+  END AS STRING) AS Election_Order,
+  '' AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  'Direct_Deposit' AS Payment_Type_Reference_ID,
+  '' AS Payment_Type_Reference_ID_Type,
+  COALESCE(r.COUNTRY_CODE, 'USA') AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  'USD' AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  r.NICKNAME AS Bank_Account_Nickname,
+  r.DESCRIPTION AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
+  '' AS Roll_Number,
+  '' AS Bank_Account_Type_Code,
+  CASE
+    WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA'
+    WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA'
+    ELSE ''
+  END AS Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.DESCRIPTION AS Bank_Name,
+  '' AS Bank_Account_IBAN,
+  CAST(r.EBANK_ID AS STRING) AS Bank_Account_ID_Number,
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  '' AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance
+FROM
+  ranked_data_hah r
+UNION ALL
+-- HAH: Supplemental Payments (defaults only)
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  CAST(r.EMPLOYEE AS STRING) AS Worker_Reference_ID,
+  '' AS Worker_Reference_ID_Type,
+  COALESCE(r.COUNTRY_CODE, 'USA') AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  'USD' AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.distribution_count AS STRING) AS Election_Order,
+  '' AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  'Direct_Deposit' AS Payment_Type_Reference_ID,
+  '' AS Payment_Type_Reference_ID_Type,
+  COALESCE(r.COUNTRY_CODE, 'USA') AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  'USD' AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  r.NICKNAME AS Bank_Account_Nickname,
+  r.DESCRIPTION AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
+  '' AS Roll_Number,
+  '' AS Bank_Account_Type_Code,
+  CASE
+    WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA'
+    WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA'
+    ELSE ''
+  END AS Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.DESCRIPTION AS Bank_Name,
+  '' AS Bank_Account_IBAN,
+  CAST(r.EBANK_ID AS STRING) AS Bank_Account_ID_Number,
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  '' AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance
+FROM
+  ranked_data_hah r
 WHERE
   r.DEFAULT_FLAG = 'Y';
 
