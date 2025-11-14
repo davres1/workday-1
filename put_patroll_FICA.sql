@@ -109,6 +109,55 @@ WITH payroll_data AS (
         AND edm.End_Date <> DATE '1700-01-01'
         AND dc.TAX_CATEGORY IN (3, 5)
     )
+UNION ALL
+
+  -- -- VMC: Oracle EBS 12.2
+  -- SELECT
+  --   CAST(papf.employee_number AS STRING) AS Worker_Reference_ID,
+  --   CAST(NULL AS STRING) AS Position_Reference_ID,  -- No position data provided
+  --   '1' AS All_Positions,
+  --   CAST(NULL AS STRING) AS Effective_As_Of,       -- No End_Date available; using NULL
+  --   'NeedClarificationfromWD' AS Apply_To_Worker,
+  --   CASE
+  --     WHEN tax.IsTaxExempt = 'True' THEN 1
+  --     ELSE 0
+  --   END AS Exempt_from_OASDI,
+  --   '' AS OASDI_Reason_for_Exemption_Reference_ID
+  -- FROM `prj-pvt-oneerp-data-raw-78c9.vmmc_erp.per_all_people_f` papf
+  -- JOIN `prj-pvt-oneerp-data-raw-78c9.vmmc_erp.pay_payroll_tax_parameters` tax
+  --   ON papf.person_id = tax.person_id
+  --  AND tax.effective_end_date >= CURRENT_DATE()
+  --  AND tax.effective_start_date <= CURRENT_DATE()
+  -- WHERE papf.current_employee_flag = 'Y'
+  --   AND papf.effective_end_date >= CURRENT_DATE()
+  --   AND papf.effective_start_date <= CURRENT_DATE()
+ 
+ --STA 
+  SELECT
+    CAST(pa.Mb_Nbr AS STRING) AS Worker_Reference_ID,
+    CAST(pos.Position AS STRING) AS Position_Reference_ID,
+    '1' AS All_Positions,
+    pos.End_Date AS Effective_As_Of,
+    'NeedClarificationfromWD' AS Apply_To_Worker,
+    1 AS Exempt_from_OASDI,
+    '' AS OASDI_Reason_for_Exemption_Reference_ID
+  FROM `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.emdedmastr` pa
+  JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
+    ON pa.EMPLOYEE = emp.EMPLOYEE
+  JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemppos` pos
+    ON pa.EMPLOYEE = pos.EMPLOYEE
+  WHERE pa.Company = 100
+    AND emp.emp_status NOT IN ('T2', 'ZI', 'ZA')
+    AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
+    AND EXISTS (
+      SELECT 1
+      FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emdedmastr` edm
+      JOIN `prj-dev-ss-oneerp.lawson_dh.dedcode` dc
+        ON edm.Ded_Code = dc.Ded_Code
+      WHERE edm.EMPLOYEE = pa.EMPLOYEE
+        AND edm.End_Date <> DATE '1700-01-01'
+        AND dc.TAX_CATEGORY IN (3, 5)
+    )
 )
 SELECT
   CAST(NULL AS STRING) AS Add_Only,
