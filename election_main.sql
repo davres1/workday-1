@@ -148,12 +148,12 @@ WITH
       lce.ACCOUNT_TYPE,
       lce.DEPOSIT_AMT,
       lce.NET_PERCENT,
-      legacy.SystemIdentifier AS LegacySystem
+      'CHI'  AS LegacySystem
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_chi.employee` emp
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND lce.END_DATE IS NULL
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
@@ -194,12 +194,12 @@ WITH
       lce.ACCOUNT_TYPE,
       lce.DEPOSIT_AMT,
       lce.NET_PERCENT,
-      legacy.SystemIdentifier AS LegacySystem
+      'MTN' AS LegacySystem
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.employee` emp
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND lce.END_DATE IS NULL
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     --WHERE
@@ -240,17 +240,17 @@ WITH
       lce.DEPOSIT_AMT,
       lce.NET_PERCENT,
       lce.COUNTRY_CODE,
-      legacy.SystemIdentifier AS LegacySystem
+      'STA' AS LegacySystem
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.employee` emp
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND lce.END_DATE IS NULL
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1700-01-01'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
       emp.EMP_STATUS NOT IN ('TP','TS','C1','CT')
-      -- AND legacy.SystemIdentifier = 'STA'
+      
   ),
   ranked_data_sta AS (
     SELECT
@@ -287,18 +287,19 @@ WITH
       lce.DEPOSIT_AMT,
       lce.NET_PERCENT,
       COALESCE(lce.COUNTRY_CODE, 'USA')        AS COUNTRY_CODE,
-      legacy.SystemIdentifier                  AS LegacySystem
+      'DH'   AS LegacySystem      
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
       INNER JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemployee` dhemp
         ON emp.EMPLOYEE = dhemp.EMPLOYEE
       LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emachdepst` lce
         ON emp.EMPLOYEE = lce.EMPLOYEE 
-       AND lce.END_DATE IS NULL
+       --AND lce.END_DATE IS NULL
+       AND  DATE(lce.END_DATE) = DATE '1700-01-01'
        AND lce.COMPANY = 100
       LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-        ON CAST(dhemp.Mb_Nbr AS STRING) = legacy.LegacyID
-       AND legacy.SystemIdentifier = 'DH'
+        ON CAST(TRIM(dhemp.Mb_Nbr) AS STRING) = legacy.LegacyID
+       AND legacy.SystemIdentifier = 'INF'
     WHERE
       emp.EMP_STATUS NOT IN ('T2', 'ZI', 'ZA')
   ),
@@ -409,7 +410,7 @@ WITH
       emp.current_employee_flag = 'Y'
       AND emp.effective_end_date >= CURRENT_DATE()
       AND emp.effective_start_date <= CURRENT_DATE()
-      -- AND legacy.SystemIdentifier = 'VMC'
+      AND legacy.SystemIdentifier = 'VMC'
   ),
   ranked_data_vmc AS (
     SELECT
@@ -957,7 +958,31 @@ SELECT
 FROM
   ranked_data_vmc r
 WHERE
-  r.DEFAULT_FLAG = 'Y'; -- Filter for the default account;
+  r.DEFAULT_FLAG = 'Y'
+  UNION ALL
+-- DH: Regular Payments (all accounts) – NOW INCLUDED
+SELECT
+  'N', r.EMPLOYEE, '', COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', 'REGULAR_PAYMENTS', '',
+  CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.distribution_count ELSE r.non_default_rank END AS STRING),
+  '', '', '', '', '', '', 'Direct_Deposit', '',
+  COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
+  CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
+  '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT END AS STRING), ''),
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT END AS STRING), ''),
+  CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING),
+  r.LegacySystem, r.LegacyID
+FROM ranked_data_dh r
+UNION ALL
+-- DH: Supplemental Payments (defaults only) – NOW INCLUDED
+SELECT
+  'N', r.EMPLOYEE, '', COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', 'SUPPLEMENTAL_PAYMENTS', '',
+  CAST(r.distribution_count AS STRING), '', '', '', '', '', '', 'Direct_Deposit', '',
+  COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
+  CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
+  '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
+  '', '', '1', r.LegacySystem, r.LegacyID
+FROM ranked_data_dh r WHERE r.DEFAULT_FLAG = 'Y';
 
 
   
