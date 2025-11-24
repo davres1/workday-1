@@ -971,7 +971,7 @@ SELECT
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT END AS STRING), ''),
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT END AS STRING), ''),
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING),
-  r.LegacySystem, r.LegacyID
+  r.LegacySystem, TRIM(r.LegacyID)
 FROM ranked_data_dh r
 UNION ALL
 -- DH: Supplemental Payments (defaults only) – NOW INCLUDED
@@ -981,7 +981,7 @@ SELECT
   COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
   CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
   '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
-  '', '', '1', r.LegacySystem, r.LegacyID
+  '', '', '1', r.LegacySystem, TRIM(r.LegacyID)
 FROM ranked_data_dh r WHERE r.DEFAULT_FLAG = 'Y';
 
 
