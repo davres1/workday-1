@@ -158,7 +158,7 @@ WITH
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
       emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2', 'W2', 'S1')
-      AND legacy.SystemIdentifier = 'CHI/Infor'
+      -- AND legacy.SystemIdentifier = 'CHI/Infor'
   ),
   ranked_data_chi AS (
     SELECT
@@ -203,7 +203,7 @@ WITH
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
       emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2', 'W2', 'S1')
-      AND legacy.SystemIdentifier = 'MNT'
+      -- AND legacy.SystemIdentifier = 'MTN'
   ),
   ranked_data_mtn AS (
     SELECT
@@ -249,7 +249,7 @@ WITH
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
       emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2', 'W2', 'S1')
-      AND legacy.SystemIdentifier = 'STA'
+      -- AND legacy.SystemIdentifier = 'STA'
   ),
   ranked_data_sta AS (
     SELECT
@@ -297,7 +297,7 @@ WITH
     WHERE
       emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2', 'W2', 'S1')
       AND LEFT(emp.EMP_STATUS, 1) NOT IN ('Z', 'T')
-      AND legacy.SystemIdentifier = 'DH'
+      -- AND legacy.SystemIdentifier = 'DH'
   ),
   ranked_data_dh AS (
     SELECT
@@ -408,7 +408,7 @@ WITH
       emp.current_employee_flag = 'Y'
       AND emp.effective_end_date >= CURRENT_DATE()
       AND emp.effective_start_date <= CURRENT_DATE()
-      AND legacy.SystemIdentifier = 'VMC'
+      -- AND legacy.SystemIdentifier = 'VMC'
   ),
   ranked_data_vmc AS (
     SELECT
