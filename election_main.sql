@@ -139,7 +139,7 @@ WITH
   base_data_chi AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      legacy.WorkForceID AS EMPLOYEE,
+      legacy.WD_Employee AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -159,7 +159,7 @@ WITH
     WHERE
       emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2')
       AND lce.company=8900
-      -- AND legacy.SystemIdentifier = 'CHI/Infor'
+      AND legacy.SystemIdentifier = 'INF'
   ),
   ranked_data_chi AS (
     SELECT
@@ -185,7 +185,7 @@ WITH
   base_data_mtn AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      legacy.WorkForceID AS EMPLOYEE,
+      legacy.WD_Employee AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -202,9 +202,8 @@ WITH
       ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
-    --WHERE
-      --emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2', 'W2', 'S1')
-      -- AND legacy.SystemIdentifier = 'MTN'
+    WHERE
+      legacy.SystemIdentifier = 'MTN'
   ),
   ranked_data_mtn AS (
     SELECT
@@ -230,7 +229,7 @@ WITH
   base_data_sta AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      legacy.WorkForceID AS EMPLOYEE,
+      legacy.WD_Employee AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -245,11 +244,11 @@ WITH
       `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.employee` emp
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1700-01-01'
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1753-01-01'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
-      emp.EMP_STATUS NOT IN ('TP','TS','C1','CT')
+      emp.EMP_STATUS NOT IN ('TP','TS','C1','CT') AND legacy.SystemIdentifier = 'STA'
       
   ),
   ranked_data_sta AS (
@@ -277,7 +276,7 @@ WITH
   base_data_dh AS (
     SELECT
       CAST(dhemp.Mb_Nbr AS STRING)            AS LegacyID,
-      legacy.WorkForceID                       AS EMPLOYEE,
+      legacy.WD_Employee                       AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -328,7 +327,7 @@ WITH
   base_data_hah AS (
     SELECT
       distrib.EMPLID AS LegacyID,
-      legacy.WorkForceID AS EMPLOYEE,
+      legacy.WD_Employee AS EMPLOYEE,
       CASE WHEN distrib.DEPOSIT_TYPE = 'B' THEN 'Y' ELSE 'N' END AS DEFAULT_FLAG,
       distrib.PRIORITY AS ACH_DIST_NBR,
       bank.BANK_NM AS DESCRIPTION,
@@ -347,6 +346,7 @@ WITH
       ON distrib.BANK_CD = bank.BANK_CD
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON distrib.EMPLID = legacy.LegacyID
+    Where legacy.SystemIdentifier = 'HAH'
   ),
   ranked_data_hah AS (
     SELECT
@@ -374,7 +374,7 @@ WITH
   base_data_vmc AS (
     SELECT
       emp.EMPLOYEE_NUMBER AS LegacyID,
-      legacy.WorkForceID AS Worker_Reference_ID,
+      legacy.WD_Employee AS Worker_Reference_ID,
       distrib.Worker_Country_Reference_ID,
       distrib.Worker_Currency_Reference_ID,
       distrib.Payment_Election_Higher_Order_Rule_ID,
