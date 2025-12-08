@@ -153,12 +153,11 @@ WITH
       `prj-pvt-oneerp-data-raw-78c9.lawson_chi.employee` emp
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01'
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01' AND emp.company=lce.company AND emp.COMPANY = 8900
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
       emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2')
-      AND lce.company=8900
       AND legacy.SystemIdentifier = 'INF'
   ),
   ranked_data_chi AS (
@@ -201,7 +200,7 @@ WITH
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.emachdepst` lce
       ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
+      ON '1_' || CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
       legacy.SystemIdentifier = 'MTN'
   ),
@@ -290,12 +289,12 @@ WITH
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
       INNER JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemployee` dhemp
-        ON emp.EMPLOYEE = dhemp.EMPLOYEE
+        ON emp.EMPLOYEE = dhemp.EMPLOYEE AND emp.company=dhemp.company AND emp.COMPANY = 100
       LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emachdepst` lce
         ON emp.EMPLOYEE = lce.EMPLOYEE 
        --AND lce.END_DATE IS NULL
        AND  DATE(lce.END_DATE) = DATE '1700-01-01'
-       AND lce.COMPANY = 100
+       --AND lce.COMPANY = 100
       LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
         ON CAST(TRIM(dhemp.Mb_Nbr) AS STRING) = legacy.LegacyID
        AND legacy.SystemIdentifier = 'INF'
