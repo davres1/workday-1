@@ -19,7 +19,8 @@ CREATE TABLE `oneerp.process_Put_Payroll_Payee_FICA_OASDIs` (
   OASDI_Reason_for_Exemption_Reference_ID STRING,
   OASDI_Reason_for_Exemption_Reference_ID_Type STRING,
   LegacySystem                          STRING,
-  LegacyID                              STRING
+  LegacyID                              STRING,
+  LawsonLegacyID                        STRING
 );
 
 DROP TABLE IF EXISTS `workday.workday_Put_Payroll_Payee_FICA_OASDIs`;
@@ -44,32 +45,37 @@ CREATE TABLE `workday.workday_Put_Payroll_Payee_FICA_OASDIs` (
 
 INSERT INTO `oneerp.process_Put_Payroll_Payee_FICA_OASDIs`
 WITH payroll_data AS (
-
-  -- CHI (Chicago)
-  SELECT
-    CAST(e.EMPLOYEE AS STRING)                    AS Worker_Reference_ID,
-    CAST(pos.Position AS STRING)                  AS Position_Reference_ID,
-    '1'                                           AS All_Positions,
-    TIMESTAMP(pos.End_Date)                       AS Effective_As_Of_TS,
-    ''                                            AS Apply_To_Worker,
-    CASE WHEN EXISTS (
-      SELECT 1 FROM `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emdedmastr` edm
-      JOIN `prj-dev-ss-oneerp.lawson_chi.dedcode` dc ON edm.Ded_Code = dc.Ded_Code
-      WHERE edm.EMPLOYEE = e.EMPLOYEE AND edm.Company = 8900
-        AND edm.End_Date <> DATE '1700-01-01' AND dc.TAX_CATEGORY IN (3, 4)
-    ) THEN 1 ELSE 0 END                           AS Exempt_from_OASDI,
-    ''                                            AS OASDI_Reason_for_Exemption_Reference_ID,
-    'CHI'                                         AS LegacySystem,
-    CAST(e.EMPLOYEE AS STRING)                    AS LegacyID
-  FROM `prj-pvt-oneerp-data-raw-78c9.lawson_chi.employee` e
-  LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.paemppos` pos
-    ON e.EMPLOYEE = pos.EMPLOYEE AND e.COMPANY = 8900
-   AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
-  -- LEFT JOIN ADDED HERE
-  LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-    ON CAST(e.EMPLOYEE AS STRING) = legacy.LegacyID AND legacy.SystemIdentifier = 'INF'
-  WHERE e.emp_status NOT IN ('T2', 'C1', 'C2')
-
+SELECT
+     CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
+    CAST(pos.Position AS STRING) AS Position_Reference_ID,
+    '1' AS All_Positions,
+    CAST(edm.End_Date AS TIMESTAMP) AS Effective_As_Of,
+    '' AS Apply_To_Worker,
+    CASE 
+        WHEN e.Term_Date = DATE '1700-01-01' 
+             AND edm.End_Date <> DATE '1700-01-01' THEN 1 
+        ELSE 0 
+    END AS Exempt_from_OASDI,
+    '' AS OASDI_Reason_for_Exemption_Reference_ID,
+    'CHI' AS LegacySystem,
+    CAST(e.EMPLOYEE AS STRING) AS LegacyID,
+    '' as LawsonLegacyID
+FROM `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emdedmastr` edm
+JOIN `prj-dev-ss-oneerp.lawson_chi.dedcode` dc 
+  ON edm.Ded_Code = dc.Ded_Code
+JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.employee` e 
+  ON edm.EMPLOYEE = e.EMPLOYEE 
+  AND edm.Company = e.Company
+LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.paemppos` pos
+  ON e.EMPLOYEE = pos.EMPLOYEE 
+  AND e.Company = 8900
+  AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
+LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+  ON CAST(e.EMPLOYEE AS STRING) = legacy.LegacyID 
+  AND legacy.SystemIdentifier = 'INF'
+WHERE edm.Company = 8900
+  AND dc.TAX_CATEGORY IN (3, 4)
+  AND e.emp_status NOT IN ('T2', 'C1', 'C2', 'W2', 'S1')
   UNION ALL
 
   -- VMC
@@ -77,12 +83,13 @@ WITH payroll_data AS (
     Worker_Reference_ID,
     Position_Reference_ID,
     All_Positions,
-    SAFE.PARSE_TIMESTAMP('%Y-%m-%d%E*T%H:%M:%S', Effective_As_Of) AS Effective_As_Of_TS,
+    SAFE.PARSE_TIMESTAMP('%Y-%m-%d%E*T%H:%M:%S', Effective_As_Of) AS Effective_As_Of,
     ''                                            AS Apply_To_Worker,
     CAST(Exempt_from_OASDI AS INT64) AS Exempt_from_OASDI,
     OASDI_Reason_for_Exemption_Reference_ID,
     'VMC'                                         AS LegacySystem,
-    Worker_Reference_ID                           AS LegacyID
+    Worker_Reference_ID                           AS LegacyID,
+    '' AS LawsonLegacyID
   FROM `prj-dev-ss-oneerp.vmmc_erp.vmc_pay_FICA_OASDIs`
   -- LEFT JOIN ADDED HERE (Needs to join on Worker_Reference_ID which serves as LegacyID here)
   LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
@@ -90,12 +97,12 @@ WITH payroll_data AS (
 
   UNION ALL
 
-  -- DH (Dartmouth-Hitchcock)
+  -- DH 
   SELECT
-    CAST(pa.Mb_Nbr AS STRING)                     AS Worker_Reference_ID,
+    CAST(legacy.WD_Employee AS STRING)                     AS Worker_Reference_ID,
     CAST(pos.Position AS STRING)                  AS Position_Reference_ID,
     '1'                                           AS All_Positions,
-    TIMESTAMP(pos.End_Date)                       AS Effective_As_Of_TS,
+    TIMESTAMP(pos.End_Date)                       AS Effective_As_Of,
     ''                                            AS Apply_To_Worker,
     CASE WHEN EXISTS (
       SELECT 1 FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emdedmastr` edm
@@ -105,7 +112,8 @@ WITH payroll_data AS (
     ) THEN 1 ELSE 0 END                           AS Exempt_from_OASDI,
     ''                                            AS OASDI_Reason_for_Exemption_Reference_ID,
     'DH'                                         AS LegacySystem,
-    CAST(pa.EMPLOYEE AS STRING)                   AS LegacyID
+    CAST(pa.Mb_Nbr AS STRING)                   AS LegacyID,
+    CAST(emp.employee AS STRING)    AS LawsonLegacyID
   FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemployee` pa
   JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
     ON pa.EMPLOYEE = emp.EMPLOYEE  AND emp.company=pa.company AND emp.COMPANY = 100
@@ -114,19 +122,19 @@ WITH payroll_data AS (
    AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
   -- LEFT JOIN ADDED HERE
   LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-    ON CAST(pa.EMPLOYEE AS STRING) = legacy.LegacyID AND legacy.SystemIdentifier = 'INF'
-  WHERE pa.Company = 100 AND emp.emp_status NOT IN ('T2', 'ZI', 'ZA')
+    ON CAST(pa.Mb_Nbr AS STRING) = legacy.LegacyID AND legacy.SystemIdentifier = 'INF'
+  WHERE  emp.emp_status NOT IN ('T2', 'ZI', 'ZA')
 
   UNION ALL
 
   -- STA (St. Alexius) - FINAL ROBUST VERSION with LEFT JOIN
   SELECT DISTINCT
-    CAST(emp.EMPLOYEE AS STRING)                  AS Worker_Reference_ID,
+     CAST(legacy.WD_Employee AS STRING)                  AS Worker_Reference_ID,
     CAST(pos.R_POSITION AS STRING)                AS Position_Reference_ID,
     '1'                                           AS All_Positions,
     
     -- MAPPED: EMDEDMASTR.EFFECT_DATE
-    TIMESTAMP(edm_main.EFFECT_DATE)               AS Effective_As_Of_TS, 
+    TIMESTAMP(edm_main.EFFECT_DATE)               AS Effective_As_Of, 
     
     'WIP'                                         AS Apply_To_Worker, 
     
@@ -139,10 +147,10 @@ WITH payroll_data AS (
         AND TRIM(CAST(ptl_sub.DED_CODE AS STRING)) IN ('1003', '1004')
     ) THEN 1 ELSE 0 END                           AS Exempt_from_OASDI,
     
-    '21-Nov-25: Not found in Lawson'              AS OASDI_Reason_for_Exemption_Reference_ID,
+    ''              AS OASDI_Reason_for_Exemption_Reference_ID,
     'STA'                                         AS LegacySystem,
-    CAST(emp.EMPLOYEE AS STRING)                  AS LegacyID
-
+    CAST(emp.EMPLOYEE AS STRING)                  AS LegacyID,
+    '' AS LawsonLegacyID
   FROM `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.employee` emp
   
   -- Join Position
@@ -187,13 +195,14 @@ SELECT
   Position_Reference_ID,
   CAST(NULL AS STRING) AS Position_Reference_ID_Type,
   All_Positions,
-  FORMAT_TIMESTAMP('%Y-%m-%dT00:00:00', Effective_As_Of_TS) AS Effective_As_Of,
+  FORMAT_TIMESTAMP('%Y-%m-%dT00:00:00', Effective_As_Of) AS Effective_As_Of,
   Apply_To_Worker,
   CAST(Exempt_from_OASDI AS STRING) AS Exempt_from_OASDI,
   OASDI_Reason_for_Exemption_Reference_ID,
   CAST(NULL AS STRING) AS OASDI_Reason_for_Exemption_Reference_ID_Type,
   LegacySystem,
-  LegacyID
+  LegacyID,
+  LawsonLegacyID
 FROM payroll_data;
 
 ---

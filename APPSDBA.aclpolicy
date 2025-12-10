@@ -1,0 +1,62 @@
+description: API project level access control (Restricted to specific jobs)
+
+context:
+
+  project: 'APPSDBA' # Target the APPSDBA project
+
+for:
+
+  resource:
+
+    # 1. Target the first specific job by name and allow run and view.
+    - equals:
+        kind: job
+        name: 'EBS Clone(including database)'
+      allow: [run, view] 
+
+    # 2. ADDED: Target the second specific job by name and allow run and view.
+    - equals:
+        kind: job
+        name: 'EBS Clone' 
+      allow: [run, view] 
+
+    # 3. Allow actions for the node resources, needed for job execution.
+    - equals:
+        kind: node
+      allow: [run,read] 
+
+    # 4. Allow read/create events to see job output/progress.
+    - equals:
+        kind: event
+      allow: [read,create] 
+      
+by:
+
+  group: APPSDBAADMIN_group 
+
+
+---
+
+description: API Application level access control (Kept for project context view)
+
+context:
+
+  application: 'rundeck'
+
+for:
+
+  resource:
+
+    - equals:
+        kind: system
+      allow: [view] # allow read of system info
+
+  project:
+
+    - match:
+        name: 'APPSDBA'
+      allow: [read] # allow view of the 'APPSDBA' project context
+
+by:
+
+  group: APPSDBAADMIN_group
