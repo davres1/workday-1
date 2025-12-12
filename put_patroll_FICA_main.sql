@@ -230,6 +230,7 @@ payroll_data AS (
         = TRIM(CAST(dc.DED_CODE AS STRING))
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID
+      and legacy.SystemIdentifier = 'STA'
     LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
     ON cpos.LegacySystem = 'STA' 
       AND  cpos.LegacyEmployee = CAST(emp.EMPLOYEE AS STRING) 
