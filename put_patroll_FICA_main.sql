@@ -57,29 +57,30 @@ Dh_Unique_Deductions AS (
       ON edm.Ded_Code = dc.Ded_Code
     WHERE
       DATE(edm.End_Date) != DATE '1700-01-01'
-      AND dc.TAX_CATEGORY IN (3, 4)
+      AND dc.TAX_CATEGORY IN (3)  and dc.Tax_Auth_Type = 'FD'
   ),
 Dh_Unique_Positions AS (
       -- Get distinct employees who have valid positions.
       SELECT DISTINCT
         EMPLOYEE
       FROM `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemppos`
-      WHERE (End_Date = DATE '1700-01-01' OR End_Date >= CURRENT_DATE())
+      --WHERE (End_Date <> DATE '1700-01-01')
   ),
 
 -- MAIN PAYROLL_DATA CTE (now uses the top-level DH CTEs)
+--- CHI - multiple rows for multiple position
 payroll_data AS (
     SELECT
       CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
-      cpos.Position_ID           --CAST('P_' || legacy.WD_Employee || '_' || e.Position AS STRING)
+      '' --cpos.Position_ID           
         AS Position_Reference_ID,
-      '1' AS All_Positions,
+      '' AS All_Positions,
       CAST(edm.End_Date AS TIMESTAMP) AS Effective_As_Of,
-      '' AS Apply_To_Worker,
+      '1' AS Apply_To_Worker,
       CASE
         WHEN
-          e.Term_Date = DATE '1700-01-01'
-          AND edm.End_Date <> DATE '1700-01-01'
+          edm.End_Date <> DATE '1700-01-01'          
+          --AND e.Term_Date = DATE '1700-01-01'
           THEN 1
         ELSE NULL
         END AS Exempt_from_OASDI,
@@ -107,11 +108,9 @@ payroll_data AS (
         on
         cpos.LegacySystem = 'INF' 
       AND cpos.LegacyEmployee = CAST(e.EMPLOYEE AS STRING)
-
-
     WHERE
       edm.Company = 8900
-      AND dc.TAX_CATEGORY IN (3, 4)
+      AND dc.TAX_CATEGORY IN (3) and dc.Tax_Auth_Type = 'FD'
       AND e.emp_status NOT IN ('T2', 'C1', 'C2', 'W2', 'S1')
       AND DATE(edm.End_Date) != DATE '1700-01-01'
     UNION ALL
@@ -141,14 +140,14 @@ payroll_data AS (
     -- DH
     SELECT
       CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
-      cpos.Position_ID       --CAST('P_' || legacy.WD_Employee || '_' || emp.POSITION AS STRING)
+      '' --cpos.Position_ID       
         AS Position_Reference_ID,
-      '1' AS All_Positions,
+      '' AS All_Positions,
       TIMESTAMP(ded.End_Date)
         AS Effective_As_Of,
-      '' AS Apply_To_Worker,
+      '1' AS Apply_To_Worker,
       CASE
-        WHEN emp.Term_Date = DATE '1700-01-01' THEN 1
+        WHEN ded.End_Date <> DATE '1700-01-01' THEN 1
         ELSE NULL
         END AS Exempt_from_OASDI,
       '' AS OASDI_Reason_for_Exemption_Reference_ID,
