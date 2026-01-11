@@ -198,7 +198,7 @@ WITH
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.employee` emp
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01'
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) > DATE '1700-01-01'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON '1_' || CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
@@ -444,7 +444,41 @@ WITH
       CASE WHEN Distribution_Balance = '1' THEN 'Y' ELSE 'N' END AS DEFAULT_FLAG -- Derive DEFAULT_FLAG from Distribution_Balance
     FROM
       base_data_vmc
-  )
+  ),
+--- PMC Data
+WITH ranked_data_pmc AS (
+    SELECT
+      CAST(emp.Number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
+      legacy.WD_Employee AS EMPLOYEE,
+      lce.ProrationCounterID, -- Assumed to be ProrationCounterID
+      lce.Type as Payment_Type_Reference_ID,
+      lce.AccountNumber,
+    bank.TransitNumber,
+      lce.ValueString,
+      lce.AccountType Bank_Account_Type_Reference_ID,
+      lce.AccountType Bank_Account_Type_Code,
+      bank.Name AS Bank_Name_Source,
+      bank.TransitNumber AS Bank_Transit_Source,
+      lce.AccountNumber as EBNK_ACCT_NBR,
+      lce.ProrationCounterID as Election_Order,
+      -- Added Type if available in source, otherwise defaulting in final select
+      -- lce.Type, 
+      'MTN' AS LegacySystem,
+      legacy.LegacyID
+    FROM
+      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` emp
+    LEFT JOIN
+      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeeddproration` lce
+      ON emp.Number = lce.EmployeeID
+    LEFT JOIN 
+      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.dppbanks` bank
+      -- FIX: Added ON clause. Verify if 'BankID' is the correct column in dppbanks
+      ON lce.BANKID = bank.BankID 
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+      ON CAST(emp.Number AS STRING) = legacy.LegacyID 
+    WHERE
+      legacy.SystemIdentifier = 'PMC'
+)
 -- CHI: Regular Payments (all accounts)
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
@@ -981,7 +1015,54 @@ SELECT
   CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
   '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
   '', '', '1', r.LegacySystem, TRIM(r.LegacyID)
-FROM ranked_data_dh r WHERE r.DEFAULT_FLAG = 'Y';
+FROM ranked_data_dh r WHERE r.DEFAULT_FLAG = 'Y'
+union all
+-- PMC
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  r.Emp_Number AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
+  '' AS Worker_Reference_ID_Type,
+  'USA' AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  'USD' AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  'Regular Payments' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.Election_Order AS STRING) AS Election_Order, -- FIX: Mapped to ProrationCounterID (ACH_DIST_NBR)
+  '' AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  r.Payment_Type_Reference_ID AS Payment_Type_Reference_ID, -- Mapped to Type (Assumed Direct Deposit for this table)
+  '' AS Payment_Type_Reference_ID_Type,
+  'USA' AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  'USD' AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  '' AS Bank_Account_Nickname,
+  r.Bank_Transit_Source AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
+  '' AS Roll_Number,
+  r.Bank_Account_Type_Code AS Bank_Account_Type_Code,
+  r.Bank_Account_Type_Reference_ID Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.Bank_Name_Source AS Bank_Name, -- FIX: Mapped to DPpBanks.Name
+  '' AS Bank_Account_IBAN,
+  CAST(r.Bank_Transit_Source AS STRING) AS Bank_Account_ID_Number, -- FIX: Mapped to DPpBanks.TransitNumber
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  '' AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  -- Logic for Amount/Percent/Balance based on Default Flag
+  r.ValueString AS Distribution_Amount,
+  r.ValueString AS Distribution_Percentage,
+  r.ValueString AS Distribution_Balance,
+  r.LegacySystem,
+  r.LegacyID
+FROM
+  ranked_data_pmc r;
 
 
   
