@@ -446,7 +446,7 @@ WITH
       base_data_vmc
   ),
 --- PMC Data
-WITH ranked_data_pmc AS (
+ranked_data_pmc AS (
     SELECT
       CAST(emp.Number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
       legacy.WD_Employee AS EMPLOYEE,
@@ -478,6 +478,40 @@ WITH ranked_data_pmc AS (
       ON CAST(emp.Number AS STRING) = legacy.LegacyID 
     WHERE
       legacy.SystemIdentifier = 'PMC'
+),
+--- THO Data
+ranked_data_tho AS (
+    SELECT
+      CAST(emp.Number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
+      legacy.WD_Employee AS EMPLOYEE,
+      lce.ProrationCounterID, -- Assumed to be ProrationCounterID
+      lce.Type as Payment_Type_Reference_ID,
+      lce.AccountNumber,
+    bank.TransitNumber,
+      lce.ValueString,
+      lce.AccountType Bank_Account_Type_Reference_ID,
+      lce.AccountType Bank_Account_Type_Code,
+      bank.Name AS Bank_Name_Source,
+      bank.TransitNumber AS Bank_Transit_Source,
+      lce.AccountNumber as EBNK_ACCT_NBR,
+      lce.ProrationCounterID as Election_Order,
+      -- Added Type if available in source, otherwise defaulting in final select
+      -- lce.Type, 
+      'MTN' AS LegacySystem,
+      legacy.LegacyID
+    FROM
+      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` emp
+    LEFT JOIN
+      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeeddproration` lce
+      ON emp.Number = lce.EmployeeID
+    LEFT JOIN 
+      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.dppbanks` bank
+      -- FIX: Added ON clause. Verify if 'BankID' is the correct column in dppbanks
+      ON lce.BANKID = bank.BankID 
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+      ON CAST(emp.Number AS STRING) = legacy.LegacyID 
+    WHERE
+      legacy.SystemIdentifier = 'THO'
 )
 -- CHI: Regular Payments (all accounts)
 SELECT
@@ -525,7 +559,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -541,7 +575,8 @@ SELECT
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
-  'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  --'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  pay_type.Rule_ID                              AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(r.distribution_count AS STRING) AS Election_Order,
   '' AS Payment_Election_Rule_ID,
@@ -575,12 +610,18 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
   ranked_data_chi r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'REGULAR_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
 WHERE
   r.DEFAULT_FLAG = 'Y'
 UNION ALL
@@ -630,7 +671,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -680,7 +721,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -694,7 +735,8 @@ SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
   r.EMPLOYEE AS Worker_Reference_ID,
   '' AS Worker_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Worker_Country_Reference_ID,
+  --'USA' AS Worker_Country_Reference_ID,
+  'USA' AS Worker_Country_Reference_ID,
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
@@ -712,7 +754,7 @@ SELECT
   '' AS Payment_Election_Rule_Currency_ID_Type,
   'Direct_Deposit' AS Payment_Type_Reference_ID,
   '' AS Payment_Type_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Bank_Account_Country_Reference_ID,
+  'USA' AS Bank_Account_Country_Reference_ID,
   '' AS Bank_Account_Country_Reference_ID_Type,
   'USD' AS Bank_Account_Currency_Reference_ID,
   '' AS Bank_Account_Currency_Reference_ID_Type,
@@ -735,7 +777,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -747,7 +789,8 @@ SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
   r.EMPLOYEE AS Worker_Reference_ID,
   '' AS Worker_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Worker_Country_Reference_ID,
+  --'USA' AS Worker_Country_Reference_ID,
+  'USA' AS Worker_Country_Reference_ID,
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
@@ -762,7 +805,7 @@ SELECT
   '' AS Payment_Election_Rule_Currency_ID_Type,
   'Direct_Deposit' AS Payment_Type_Reference_ID,
   '' AS Payment_Type_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Bank_Account_Country_Reference_ID,
+  'USA' AS Bank_Account_Country_Reference_ID,
   '' AS Bank_Account_Country_Reference_ID_Type,
   'USD' AS Bank_Account_Currency_Reference_ID,
   '' AS Bank_Account_Currency_Reference_ID_Type,
@@ -785,7 +828,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -799,7 +842,7 @@ SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
   r.EMPLOYEE AS Worker_Reference_ID,
   '' AS Worker_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Worker_Country_Reference_ID,
+  'USA' AS Worker_Country_Reference_ID,
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
@@ -817,7 +860,7 @@ SELECT
   '' AS Payment_Election_Rule_Currency_ID_Type,
   'Direct_Deposit' AS Payment_Type_Reference_ID,
   '' AS Payment_Type_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Bank_Account_Country_Reference_ID,
+  'USA' AS Bank_Account_Country_Reference_ID,
   '' AS Bank_Account_Country_Reference_ID_Type,
   'USD' AS Bank_Account_Currency_Reference_ID,
   '' AS Bank_Account_Currency_Reference_ID_Type,
@@ -840,7 +883,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS  Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -852,7 +895,7 @@ SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
   r.EMPLOYEE AS Worker_Reference_ID,
   '' AS Worker_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Worker_Country_Reference_ID,
+  'USA' AS Worker_Country_Reference_ID,
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
@@ -867,7 +910,7 @@ SELECT
   '' AS Payment_Election_Rule_Currency_ID_Type,
   'Direct_Deposit' AS Payment_Type_Reference_ID,
   '' AS Payment_Type_Reference_ID_Type,
-  COALESCE(r.COUNTRY_CODE, 'USA') AS Bank_Account_Country_Reference_ID,
+  'USA' AS Bank_Account_Country_Reference_ID,
   '' AS Bank_Account_Country_Reference_ID_Type,
   'USD' AS Bank_Account_Currency_Reference_ID,
   '' AS Bank_Account_Currency_Reference_ID_Type,
@@ -890,7 +933,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -938,7 +981,7 @@ SELECT
   r.Bank_Account_Branch_ID_Number,
   r.Bank_Account_Check_Digit,
   r.Distribution_Amount,
-  r.Distribution_Percentage,
+  r.Distribution_Percentage || '%',
   r.Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -995,27 +1038,73 @@ WHERE
   UNION ALL
 -- DH: Regular Payments (all accounts) – NOW INCLUDED
 SELECT
-  'N', r.EMPLOYEE, '', COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', 'REGULAR_PAYMENTS', '',
+  'N', r.EMPLOYEE, '', 'USA', '', 'USD', '', 'REGULAR_PAYMENTS', '',
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.distribution_count ELSE r.non_default_rank END AS STRING),
   '', '', '', '', '', '', 'Direct_Deposit', '',
   COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
   CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
   '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT END AS STRING), ''),
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT END AS STRING), ''),
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT END AS STRING), '') || '%',
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING),
   r.LegacySystem, TRIM(r.LegacyID)
 FROM ranked_data_dh r
 UNION ALL
 -- DH: Supplemental Payments (defaults only) – NOW INCLUDED
 SELECT
-  'N', r.EMPLOYEE, '', COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', 'SUPPLEMENTAL_PAYMENTS', '',
-  CAST(r.distribution_count AS STRING), '', '', '', '', '', '', 'Direct_Deposit', '',
-  COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
-  CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
-  '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
-  '', '', '1', r.LegacySystem, TRIM(r.LegacyID)
-FROM ranked_data_dh r WHERE r.DEFAULT_FLAG = 'Y'
+  'N'                                           AS Retain_Unused_Worker_Bank_Accounts,
+  r.EMPLOYEE                                    AS Worker_Reference_ID,
+  ''                                            AS Worker_Reference_ID_Type,
+  'USA'                                         AS Worker_Country_Reference_ID,
+  ''                                            AS Worker_Country_Reference_ID_Type,
+  'USD'                                         AS Worker_Currency_Reference_ID,
+  ''                                            AS Worker_Currency_Reference_ID_Type,
+  pay_type.Rule_ID                              AS Payment_Election_Higher_Order_Rule_ID,
+  ''                                            AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.distribution_count AS STRING)          AS Election_Order,
+  ''                                            AS Payment_Election_Rule_ID,
+  ''                                            AS Payment_Election_Rule_ID_Type,
+  ''                                            AS Payment_Election_Rule_Country,
+  ''                                            AS Payment_Election_Rule_Country_Type,
+  ''                                            AS Payment_Election_Rule_Currency_ID,
+  ''                                            AS Payment_Election_Rule_Currency_ID_Type,
+  'Direct_Deposit'                              AS Payment_Type_Reference_ID,
+  ''                                            AS Payment_Type_Reference_ID_Type,
+  'USA'               AS Bank_Account_Country_Reference_ID,
+  ''                                            AS Bank_Account_Country_Reference_ID_Type,
+  'USD'                                         AS Bank_Account_Currency_Reference_ID,
+  ''                                            AS Bank_Account_Currency_Reference_ID_Type,
+  ''                                            AS Bank_Account_Nickname,
+  r.DESCRIPTION                                 AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING)               AS Bank_Account_Number,
+  ''                                            AS Roll_Number,
+  ''                                            AS Bank_Account_Type_Code,
+  CASE 
+    WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' 
+    WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' 
+    ELSE '' 
+  END                                           AS Bank_Account_Type_Reference_ID,
+  ''                                            AS Bank_Account_Type_Reference_ID_Type,
+  r.DESCRIPTION                                 AS Bank_Name,
+  ''                                            AS Bank_Account_IBAN,
+  CAST(r.EBANK_ID AS STRING)                    AS Bank_Account_ID_Number,
+  ''                                            AS Bank_Account_BIC,
+  ''                                            AS Bank_Account_Branch_Name,
+  ''                                            AS Bank_Account_Branch_ID_Number,
+  ''                                            AS Bank_Account_Check_Digit,
+  ''                                            AS Distribution_Amount,
+  ''                                            AS Distribution_Percentage,
+  '1'                                           AS Distribution_Balance,
+  r.LegacySystem                                AS LegacySystem,
+  TRIM(r.LegacyID)                              AS LegacyID
+FROM ranked_data_dh r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'REGULAR_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
+WHERE r.DEFAULT_FLAG = 'Y'
 union all
 -- PMC
 SELECT
@@ -1057,12 +1146,59 @@ SELECT
   '' AS Bank_Account_Check_Digit,
   -- Logic for Amount/Percent/Balance based on Default Flag
   r.ValueString AS Distribution_Amount,
-  r.ValueString AS Distribution_Percentage,
+  r.ValueString || '%' AS Distribution_Percentage,
   r.ValueString AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
-  ranked_data_pmc r;
+  ranked_data_pmc r
+  union all
+-- THO
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  r.Emp_Number AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
+  '' AS Worker_Reference_ID_Type,
+  'USA' AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  'USD' AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  'Regular Payments' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.Election_Order AS STRING) AS Election_Order, -- FIX: Mapped to ProrationCounterID (ACH_DIST_NBR)
+  '' AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  r.Payment_Type_Reference_ID AS Payment_Type_Reference_ID, -- Mapped to Type (Assumed Direct Deposit for this table)
+  '' AS Payment_Type_Reference_ID_Type,
+  'USA' AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  'USD' AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  '' AS Bank_Account_Nickname,
+  r.Bank_Transit_Source AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
+  '' AS Roll_Number,
+  r.Bank_Account_Type_Code AS Bank_Account_Type_Code,
+  r.Bank_Account_Type_Reference_ID Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.Bank_Name_Source AS Bank_Name, -- FIX: Mapped to DPpBanks.Name
+  '' AS Bank_Account_IBAN,
+  CAST(r.Bank_Transit_Source AS STRING) AS Bank_Account_ID_Number, -- FIX: Mapped to DPpBanks.TransitNumber
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  '' AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  -- Logic for Amount/Percent/Balance based on Default Flag
+  r.ValueString AS Distribution_Amount,
+  r.ValueString || '%' AS Distribution_Percentage,
+  r.ValueString AS Distribution_Balance,
+  r.LegacySystem,
+  r.LegacyID
+FROM
+  ranked_data_tho r;
 
 
   
