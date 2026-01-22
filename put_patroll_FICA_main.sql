@@ -70,12 +70,12 @@ Dh_Unique_Positions AS (
 -- MAIN PAYROLL_DATA CTE (now uses the top-level DH CTEs)
 --- CHI - multiple rows for multiple position
 payroll_data AS (
-    SELECT
+    SELECT DISTINCT
       CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
       '' --cpos.Position_ID           
         AS Position_Reference_ID,
       '' AS All_Positions,
-      CAST(edm.End_Date AS TIMESTAMP) AS Effective_As_Of,
+      FORMAT_DATE('%Y-%m-%d', CAST(edm.End_Date AS DATE)) AS Effective_As_Of,
       '1' AS Apply_To_Worker,
       CASE
         WHEN
@@ -84,7 +84,12 @@ payroll_data AS (
           THEN 1
         ELSE NULL
         END AS Exempt_from_OASDI,
-      '' AS OASDI_Reason_for_Exemption_Reference_ID,
+      CASE
+        WHEN
+        hrusf.FIELD_KEY = '95' and A_FIELD is not null
+        then 'Clergy'
+        ELSE 'Other'
+      END  AS OASDI_Reason_for_Exemption_Reference_ID,
       'CHI' AS LegacySystem,
       CAST(e.EMPLOYEE AS STRING) AS LegacyID,
       CAST(e.EMPLOYEE AS STRING) AS LawsonLegacyID -- FIX: Populated
@@ -95,6 +100,10 @@ payroll_data AS (
       ON
         edm.EMPLOYEE = e.EMPLOYEE
         AND edm.Company = e.Company
+    JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.hrempusf` hrusf
+    on 
+      edm.EMPLOYEE = hrusf.employee
+      AND edm.Company = hrusf.Company
     LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.paemppos` pos
       ON
         e.EMPLOYEE = pos.EMPLOYEE
@@ -116,12 +125,12 @@ payroll_data AS (
     UNION ALL
 
     -- VMC
-    SELECT
+    SELECT DISTINCT
       Worker_Reference_ID,
       cpos.Position_ID AS Position_Reference_ID,
       All_Positions,
-      SAFE.PARSE_TIMESTAMP('%Y-%m-%d%E*T%H:%M:%S', Effective_As_Of)
-        AS Effective_As_Of,
+      --SAFE.PARSE_TIMESTAMP('%Y-%m-%d', Effective_As_Of) AS Effective_As_Of,
+      FORMAT_DATE('%Y-%m-%d', CAST(Effective_As_Of AS DATE)) AS Effective_As_Of,
       '' AS Apply_To_Worker,
       CAST(Exempt_from_OASDI AS INT64) AS Exempt_from_OASDI,
       OASDI_Reason_for_Exemption_Reference_ID,
@@ -138,19 +147,24 @@ payroll_data AS (
     UNION ALL
 
     -- DH
-    SELECT
+    SELECT DISTINCT
       CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
       '' --cpos.Position_ID       
         AS Position_Reference_ID,
       '' AS All_Positions,
-      TIMESTAMP(ded.End_Date)
-        AS Effective_As_Of,
+      --TIMESTAMP(ded.End_Date) AS Effective_As_Of,
+      FORMAT_DATE('%Y-%m-%d', CAST(ded.End_Date AS DATE)) AS Effective_As_Of,      
       '1' AS Apply_To_Worker,
       CASE
         WHEN ded.End_Date <> DATE '1700-01-01' THEN 1
         ELSE NULL
         END AS Exempt_from_OASDI,
-      '' AS OASDI_Reason_for_Exemption_Reference_ID,
+      CASE
+        WHEN
+        hrusf.FIELD_KEY = '36' and A_FIELD is not null
+        then 'Clergy'
+        ELSE 'Other'
+      END AS OASDI_Reason_for_Exemption_Reference_ID,
       'DH' AS LegacySystem,
       CAST(pa.Mb_Nbr AS STRING) AS LegacyID,
       CAST(emp.employee AS STRING) AS LawsonLegacyID
@@ -174,6 +188,10 @@ payroll_data AS (
       ON
         TRIM(CAST(pa.Mb_Nbr AS STRING)) = legacy.LegacyID
         AND legacy.SystemIdentifier = 'INF'
+    JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.hrempusf` hrusf
+    on 
+      ded.EMPLOYEE = hrusf.employee
+      --AND edm.Company = hrusf.Company
     LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
         on
         cpos.LegacySystem = 'INF' 
@@ -187,9 +205,10 @@ payroll_data AS (
       CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
       cpos.Position_ID 
         AS Position_Reference_ID,
-      '1' AS All_Positions,
-      TIMESTAMP(edm_main.EFFECT_DATE) AS Effective_As_Of,
-      '' AS Apply_To_Worker,
+      '' AS All_Positions,
+      --TIMESTAMP(edm_main.EFFECT_DATE) AS Effective_As_Of,
+      FORMAT_DATE('%Y-%m-%d', CAST(edm_main.End_Date AS DATE)) AS Effective_As_Of,
+      '1' AS Apply_To_Worker,
       CASE
         WHEN
           EXISTS(
@@ -199,12 +218,19 @@ payroll_data AS (
               CAST(ptl_sub.EMPLOYEE AS STRING) = CAST(emp.EMPLOYEE AS STRING)
               AND ptl_sub.COMPANY = 1
               AND ptl_sub.RECORD_TYPE = 'D'
-              AND TRIM(CAST(ptl_sub.DED_CODE AS STRING)) IN ('1003', '1004')
+              AND ptl_sub.ACTIVE_FLAG ='A'
+              AND TRIM(CAST(ptl_sub.DED_CODE AS STRING)) IN ('1003')
           )
           THEN 1
         ELSE NULL
         END AS Exempt_from_OASDI,
-      '' AS OASDI_Reason_for_Exemption_Reference_ID,
+      CASE
+        WHEN
+        hrusf.FIELD_KEY = '88' and A_FIELD is not null
+        then 'Clergy'
+        ELSE 'Other'
+      END
+      AS OASDI_Reason_for_Exemption_Reference_ID,
       'STA' AS LegacySystem,
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
       CAST(emp.EMPLOYEE AS STRING) AS LawsonLegacyID -- FIX: Populated
@@ -227,6 +253,9 @@ payroll_data AS (
       ON
         TRIM(CAST(edm_main.DED_CODE AS STRING))
         = TRIM(CAST(dc.DED_CODE AS STRING))
+    JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.hrempusf` hrusf
+      ON 
+        hrusf.employee = emp.employee
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID
       and legacy.SystemIdentifier = 'STA'
@@ -240,7 +269,43 @@ payroll_data AS (
         OR CAST(ptl.DED_CODE AS STRING) IN ('1003', '1004'))
       AND DATE(edm_main.End_Date) != DATE '1700-01-01'
       AND ptl.ACTIVE_FLAG = 'A'
-  )
+
+-- PMC
+  Union all
+  SELECT DISTINCT
+      CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
+      cpos.Position_ID 
+        AS Position_Reference_ID,
+      '' AS All_Positions,
+      --TIMESTAMP(edm_main.EFFECT_DATE) AS Effective_As_Of,
+      FORMAT_DATE('%Y-%m-%d', CAST(hremp.HireDateTime AS DATE)) AS Effective_As_Of,
+      '' AS Apply_To_Worker,
+      CASE
+        WHEN
+          hrp.DeptID='01.8605' and hrp.JobCodeID='8012'
+          THEN 1
+        ELSE 0
+      END AS Exempt_from_OASDI,
+      CASE
+            WHEN hrp.DeptID='01.8605' AND hrp.JobCodeID='8012' 
+        THEN 'Clergy' ELSE 'Others'
+      END AS OASDI_Reason_for_Exemption_Reference_ID,
+      'PMC' AS LegacySystem,
+      CAST(hrp.EmployeeID AS STRING) AS LegacyID,
+      CAST(hrp.EmployeeID AS STRING) AS LawsonLegacyID -- FIX: Populated
+    FROM `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepayrolls` hrp
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+      ON CAST(hrp.EmployeeID AS STRING) = legacy.LegacyID
+      and legacy.SystemIdentifier = 'PMC'
+    JOIN `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepersonelpositions` hremp
+      ON
+        CAST(hrp.EmployeeID AS STRING) = CAST(hrp.EmployeeID AS STRING)    
+    LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
+    ON   cpos.LegacyEmployee = CAST(hrp.EmployeeID AS STRING)
+    where legacy.SystemIdentifier = 'PMC'
+      )
+
+
 
 -- Final projection
 SELECT
@@ -253,7 +318,8 @@ SELECT
   Position_Reference_ID,
   CAST(NULL AS STRING) AS Position_Reference_ID_Type,
   All_Positions,
-  FORMAT_TIMESTAMP('%Y-%m-%dT00:00:00', Effective_As_Of) AS Effective_As_Of,
+  --FORMAT_TIMESTAMP('%Y-%m-%d', Effective_As_Of) AS Effective_As_Of,
+  FORMAT_DATE('%Y-%m-%d', CAST(Effective_As_Of AS DATE)) AS Effective_As_Of,
   Apply_To_Worker,
   CAST(Exempt_from_OASDI AS STRING) AS Exempt_from_OASDI,
   OASDI_Reason_for_Exemption_Reference_ID,

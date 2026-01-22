@@ -463,7 +463,7 @@ ranked_data_pmc AS (
       lce.ProrationCounterID as Election_Order,
       -- Added Type if available in source, otherwise defaulting in final select
       -- lce.Type, 
-      'MTN' AS LegacySystem,
+      'PMC' AS LegacySystem,
       legacy.LegacyID
     FROM
       `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` emp
@@ -497,7 +497,7 @@ ranked_data_tho AS (
       lce.ProrationCounterID as Election_Order,
       -- Added Type if available in source, otherwise defaulting in final select
       -- lce.Type, 
-      'MTN' AS LegacySystem,
+      'THO' AS LegacySystem,
       legacy.LegacyID
     FROM
       `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` emp
@@ -559,7 +559,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '') AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -610,7 +610,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -618,7 +618,7 @@ FROM
   ranked_data_chi r
 CROSS JOIN (
   -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
-  SELECT 'REGULAR_PAYMENTS' AS Rule_ID
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
   UNION ALL
   SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
 ) AS pay_type
@@ -671,7 +671,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -687,7 +687,8 @@ SELECT
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
-  'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  --'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  pay_type.Rule_ID                              AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(r.distribution_count AS STRING) AS Election_Order,
   '' AS Payment_Election_Rule_ID,
@@ -721,12 +722,18 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
   ranked_data_mtn r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
 WHERE
   r.DEFAULT_FLAG = 'Y'
 UNION ALL
@@ -777,7 +784,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -794,7 +801,8 @@ SELECT
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
-  'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  --'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  pay_type.Rule_ID AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(r.distribution_count AS STRING) AS Election_Order,
   '' AS Payment_Election_Rule_ID,
@@ -828,12 +836,18 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
   ranked_data_sta r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
 WHERE
   r.DEFAULT_FLAG = 'Y'
 UNION ALL
@@ -883,7 +897,7 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS  Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS  Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -899,7 +913,8 @@ SELECT
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
-  'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  --'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  pay_type.Rule_ID AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(r.distribution_count AS STRING) AS Election_Order,
   '' AS Payment_Election_Rule_ID,
@@ -933,12 +948,18 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT ELSE NULL END AS STRING), '') || '%' AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
   ranked_data_hah r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
 WHERE
   r.DEFAULT_FLAG = 'Y'
 UNION ALL
@@ -981,7 +1002,7 @@ SELECT
   r.Bank_Account_Branch_ID_Number,
   r.Bank_Account_Check_Digit,
   r.Distribution_Amount,
-  r.Distribution_Percentage || '%',
+  CAST(SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage, 
   r.Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -997,7 +1018,8 @@ SELECT
   '' AS Worker_Country_Reference_ID_Type,
   r.Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
-  'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  --'SUPPLEMENTAL_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  pay_type.Rule_ID AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   r.Election_Order,
   '' AS Payment_Election_Rule_ID,
@@ -1027,12 +1049,18 @@ SELECT
   r.Bank_Account_Branch_ID_Number,
   r.Bank_Account_Check_Digit,
   r.Distribution_Amount,
-  r.Distribution_Percentage,
+  CAST(SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
   r.Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
   ranked_data_vmc r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
 WHERE
   r.DEFAULT_FLAG = 'Y'
   UNION ALL
@@ -1041,11 +1069,11 @@ SELECT
   'N', r.EMPLOYEE, '', 'USA', '', 'USD', '', 'REGULAR_PAYMENTS', '',
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.distribution_count ELSE r.non_default_rank END AS STRING),
   '', '', '', '', '', '', 'Direct_Deposit', '',
-  COALESCE(r.COUNTRY_CODE,'USA'), '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
+  'USA', '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
   CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
   '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT END AS STRING), ''),
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.NET_PERCENT END AS STRING), '') || '%',
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 END AS STRING), '') ,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING),
   r.LegacySystem, TRIM(r.LegacyID)
 FROM ranked_data_dh r
@@ -1100,13 +1128,13 @@ SELECT
 FROM ranked_data_dh r
 CROSS JOIN (
   -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
-  SELECT 'REGULAR_PAYMENTS' AS Rule_ID
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
   UNION ALL
   SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
 ) AS pay_type
 WHERE r.DEFAULT_FLAG = 'Y'
 union all
--- PMC
+-- PMC Regular_Payments
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
   r.Emp_Number AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
@@ -1115,7 +1143,7 @@ SELECT
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
-  'Regular Payments' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  'REGULAR_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(r.Election_Order AS STRING) AS Election_Order, -- FIX: Mapped to ProrationCounterID (ACH_DIST_NBR)
   '' AS Payment_Election_Rule_ID,
@@ -1146,14 +1174,15 @@ SELECT
   '' AS Bank_Account_Check_Digit,
   -- Logic for Amount/Percent/Balance based on Default Flag
   r.ValueString AS Distribution_Amount,
-  r.ValueString || '%' AS Distribution_Percentage,
+  CAST(SAFE_CAST(r.ValueString AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
   r.ValueString AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
   ranked_data_pmc r
-  union all
--- THO
+
+union all
+-- PMC SUPPLEMENTAL_PAYMENTS
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
   r.Emp_Number AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
@@ -1162,7 +1191,8 @@ SELECT
   '' AS Worker_Country_Reference_ID_Type,
   'USD' AS Worker_Currency_Reference_ID,
   '' AS Worker_Currency_Reference_ID_Type,
-  'Regular Payments' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  --'Regular_Payments' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  pay_type.Rule_ID AS Payment_Election_Higher_Order_Rule_ID,
   '' AS Payment_Election_Higher_Order_Rule_ID_Type,
   CAST(r.Election_Order AS STRING) AS Election_Order, -- FIX: Mapped to ProrationCounterID (ACH_DIST_NBR)
   '' AS Payment_Election_Rule_ID,
@@ -1193,12 +1223,121 @@ SELECT
   '' AS Bank_Account_Check_Digit,
   -- Logic for Amount/Percent/Balance based on Default Flag
   r.ValueString AS Distribution_Amount,
-  r.ValueString || '%' AS Distribution_Percentage,
+  CAST(SAFE_CAST(r.ValueString AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
   r.ValueString AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
-  ranked_data_tho r;
+  ranked_data_pmc r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
+--WHERE r.DEFAULT_FLAG = 'Y'
+union all
+-- THO Regular_Payments
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  r.Emp_Number AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
+  '' AS Worker_Reference_ID_Type,
+  'USA' AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  'USD' AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  'REGULAR_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.Election_Order AS STRING) AS Election_Order, -- FIX: Mapped to ProrationCounterID (ACH_DIST_NBR)
+  '' AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  r.Payment_Type_Reference_ID AS Payment_Type_Reference_ID, -- Mapped to Type (Assumed Direct Deposit for this table)
+  '' AS Payment_Type_Reference_ID_Type,
+  'USA' AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  'USD' AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  '' AS Bank_Account_Nickname,
+  r.Bank_Transit_Source AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
+  '' AS Roll_Number,
+  r.Bank_Account_Type_Code AS Bank_Account_Type_Code,
+  r.Bank_Account_Type_Reference_ID Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.Bank_Name_Source AS Bank_Name, -- FIX: Mapped to DPpBanks.Name
+  '' AS Bank_Account_IBAN,
+  CAST(r.Bank_Transit_Source AS STRING) AS Bank_Account_ID_Number, -- FIX: Mapped to DPpBanks.TransitNumber
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  '' AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  -- Logic for Amount/Percent/Balance based on Default Flag
+  r.ValueString AS Distribution_Amount,
+  CAST(SAFE_CAST(r.ValueString AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
+  r.ValueString AS Distribution_Balance,
+  r.LegacySystem,
+  r.LegacyID
+FROM
+  ranked_data_tho r
+union all
+-- THO SUPPLEMENTAL_PAYMENTS
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  r.Emp_Number AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
+  '' AS Worker_Reference_ID_Type,
+  'USA' AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  'USD' AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  --'REGULAR_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  pay_type.Rule_ID AS Payment_Election_Higher_Order_Rule_ID,
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.Election_Order AS STRING) AS Election_Order, -- FIX: Mapped to ProrationCounterID (ACH_DIST_NBR)
+  '' AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  r.Payment_Type_Reference_ID AS Payment_Type_Reference_ID, -- Mapped to Type (Assumed Direct Deposit for this table)
+  '' AS Payment_Type_Reference_ID_Type,
+  'USA' AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  'USD' AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  '' AS Bank_Account_Nickname,
+  r.Bank_Transit_Source AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
+  '' AS Roll_Number,
+  r.Bank_Account_Type_Code AS Bank_Account_Type_Code,
+  r.Bank_Account_Type_Reference_ID Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.Bank_Name_Source AS Bank_Name, -- FIX: Mapped to DPpBanks.Name
+  '' AS Bank_Account_IBAN,
+  CAST(r.Bank_Transit_Source AS STRING) AS Bank_Account_ID_Number, -- FIX: Mapped to DPpBanks.TransitNumber
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  '' AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  -- Logic for Amount/Percent/Balance based on Default Flag
+  r.ValueString AS Distribution_Amount,
+  CAST(SAFE_CAST(r.ValueString AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
+  r.ValueString AS Distribution_Balance,
+  r.LegacySystem,
+  r.LegacyID
+FROM
+  ranked_data_tho r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
+;
 
 
   
