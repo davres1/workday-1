@@ -280,6 +280,7 @@ WITH
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
       lce.EBNK_ACCT_NBR,
+      lce.ACH_DIST_ORDER,
       lce.EBANK_ID,
       lce.ACCOUNT_TYPE,
       lce.DEPOSIT_AMT,
@@ -318,7 +319,7 @@ WITH
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
         PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
-        ORDER BY CAST(ACH_DIST_NBR AS INT64)
+        ORDER BY CAST(ACH_DIST_ORDER AS INT64) ASC
       ) AS non_default_rank
     FROM
       base_data_dh
@@ -448,36 +449,37 @@ WITH
 --- PMC Data
 ranked_data_pmc AS (
     SELECT
-      CAST(emp.Number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
-      lce.ProrationCounterID, -- Assumed to be ProrationCounterID
-      lce.Type as Payment_Type_Reference_ID,
-      lce.AccountNumber,
-    bank.TransitNumber,
-      lce.ValueString,
-      lce.AccountType Bank_Account_Type_Reference_ID,
-      lce.AccountType Bank_Account_Type_Code,
-      bank.Name AS Bank_Name_Source,
-      bank.TransitNumber AS Bank_Transit_Source,
-      lce.AccountNumber as EBNK_ACCT_NBR,
-      lce.ProrationCounterID as Election_Order,
-      -- Added Type if available in source, otherwise defaulting in final select
-      -- lce.Type, 
-      'PMC' AS LegacySystem,
-      legacy.LegacyID
-    FROM
-      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` emp
-    LEFT JOIN
-      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeeddproration` lce
-      ON emp.Number = lce.EmployeeID
-    LEFT JOIN 
-      `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.dppbanks` bank
-      -- FIX: Added ON clause. Verify if 'BankID' is the correct column in dppbanks
-      ON lce.BANKID = bank.BankID 
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON CAST(emp.Number AS STRING) = legacy.LegacyID 
-    WHERE
-      legacy.SystemIdentifier = 'PMC'
+  CAST(lce.EmployeeID AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
+  CASE 
+    WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL 
+    THEN CAST(legacy.WD_Employee AS STRING) 
+    ELSE 'XWALK_ERROR' 
+  END AS EMPLOYEE,
+  lce.ProrationCounterID, -- Assumed to be ProrationCounterID
+  lce.Type AS Payment_Type_Reference_ID,
+  lce.AccountNumber,
+  bank.TransitNumber,
+  lce.ValueString,
+  lce.AccountType AS Bank_Account_Type_Reference_ID,
+  lce.AccountType AS Bank_Account_Type_Code,
+  bank.Name AS Bank_Name_Source,
+  bank.TransitNumber AS Bank_Transit_Source,
+  lce.AccountNumber AS EBNK_ACCT_NBR,
+  lce.ProrationCounterID AS Election_Order,
+  'PMC' AS LegacySystem,
+  legacy.LegacyID
+FROM
+  
+  `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeeddproration` lce
+
+LEFT JOIN
+  `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.dppbanks` bank
+  ON lce.BANKID = bank.BankID
+LEFT JOIN
+  `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+  ON CAST(lce.EmployeeID AS STRING) = legacy.LegacyID
+WHERE
+  legacy.SystemIdentifier = 'PMC'
 ),
 --- THO Data
 ranked_data_tho AS (
@@ -512,7 +514,30 @@ ranked_data_tho AS (
       ON CAST(emp.Number AS STRING) = legacy.LegacyID 
     WHERE
       legacy.SystemIdentifier = 'THO'
-)
+),
+
+--- SLC ranked data
+ranked_data_slc AS (
+  SELECT
+    CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS Worker_Reference_ID,
+    emp.`Order` AS Election_Order,
+    emp.Payment_Election_Rule_Reference_ID,
+    COALESCE(emp.Country_Reference_ID, 'USA') AS Country_Reference_ID,
+    COALESCE(emp.Currency_Reference_ID, 'USD') AS Currency_Reference_ID,
+    emp.Payment_Type_Reference_ID,
+    emp.Bank_Name,
+    emp.Account_Number,
+    emp.Routing_Number,
+    emp.Distribution_Amount,
+    emp.Distribution_Balance,
+    (Distribution_Balance IS NOT NULL AND TRIM(Distribution_Balance) != '') AS is_balance,
+    'SLC' AS LegacySystem,
+    CAST(emp.Position_ID AS STRING) AS LegacyID
+  FROM `prj-dev-ss-oneerp.oneerp.SLC_SubmitPaymentElectionEnrollment` emp
+  LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+    ON CAST(emp.Position_ID AS STRING) = legacy.LegacyID
+    AND legacy.SystemIdentifier = 'SLC' 
+  ) 
 -- CHI: Regular Payments (all accounts)
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
@@ -1331,6 +1356,104 @@ SELECT
   r.LegacyID
 FROM
   ranked_data_tho r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
+UNION ALL
+-- SLC regular payment
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  r.Worker_Reference_ID,
+  '' AS Worker_Reference_ID_Type,
+  r.Country_Reference_ID AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  r.Currency_Reference_ID AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  'REGULAR_PAYMENTS' AS Payment_Election_Higher_Order_Rule_ID,
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.Election_Order AS STRING) AS Election_Order,
+  COALESCE(r.Payment_Election_Rule_Reference_ID, '') AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  r.Payment_Type_Reference_ID AS Payment_Type_Reference_ID,
+  '' AS Payment_Type_Reference_ID_Type,
+  r.Country_Reference_ID AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  r.Currency_Reference_ID AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  '' AS Bank_Account_Nickname,
+  r.Bank_Name AS Bank_Account_Name,
+  r.Account_Number AS Bank_Account_Number,
+  '' AS Roll_Number,
+  '' AS Bank_Account_Type_Code,  -- No checking/savings flag in source
+  r.Payment_Type_Reference_ID AS Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.Bank_Name AS Bank_Name,
+  '' AS Bank_Account_IBAN,
+  '' AS Bank_Account_ID_Number,
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  r.Routing_Number AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  CASE WHEN r.is_balance THEN '' ELSE r.Distribution_Amount END AS Distribution_Amount,
+  '' AS Distribution_Percentage,  -- SLC source has no percentage
+  CASE WHEN r.is_balance THEN 'Balance' ELSE '' END AS Distribution_Balance,
+  r.LegacySystem,
+  r.LegacyID
+FROM ranked_data_slc r 
+
+UNION ALL
+
+-- SLC: Balance/remainder account only for Supplemental Payments
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  r.Worker_Reference_ID,
+  '' AS Worker_Reference_ID_Type,
+  r.Country_Reference_ID AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  r.Currency_Reference_ID AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  pay_type.Rule_ID AS Payment_Election_Higher_Order_Rule_ID,
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.Election_Order AS STRING) AS Election_Order,
+  COALESCE(r.Payment_Election_Rule_Reference_ID, '') AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  r.Payment_Type_Reference_ID AS Payment_Type_Reference_ID,
+  '' AS Payment_Type_Reference_ID_Type,
+  r.Country_Reference_ID AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  r.Currency_Reference_ID AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  '' AS Bank_Account_Nickname,
+  r.Bank_Name AS Bank_Account_Name,
+  r.Account_Number AS Bank_Account_Number,
+  '' AS Roll_Number,
+  '' AS Bank_Account_Type_Code,
+  r.Payment_Type_Reference_ID AS Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.Bank_Name AS Bank_Name,
+  '' AS Bank_Account_IBAN,
+  '' AS Bank_Account_ID_Number,
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  r.Routing_Number AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  '' AS Distribution_Amount,
+  '' AS Distribution_Percentage,
+  'Balance' AS Distribution_Balance,
+  r.LegacySystem,
+  r.LegacyID
+FROM ranked_data_slc r
 CROSS JOIN (
   -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
   SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
