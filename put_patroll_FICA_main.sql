@@ -86,7 +86,7 @@ payroll_data AS (
         END AS Exempt_from_OASDI,
       CASE
         WHEN
-        hrusf.FIELD_KEY = '95' and trim(hrusf.A_FIELD) !=''
+          trim(hrusf.A_FIELD) !=''
         then 'Clergy'
         ELSE 'Other'
       END  AS OASDI_Reason_for_Exemption_Reference_ID,
@@ -103,7 +103,7 @@ payroll_data AS (
     LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.hrempusf` hrusf
     on 
       edm.EMPLOYEE = hrusf.employee
-      AND edm.Company = hrusf.Company and trim(hrusf.A_FIELD) !=''
+      AND edm.Company = hrusf.Company and hrusf.FIELD_KEY = '95'
     LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.paemppos` pos
       ON
         e.EMPLOYEE = pos.EMPLOYEE
@@ -161,7 +161,7 @@ payroll_data AS (
         END AS Exempt_from_OASDI,
       CASE
         WHEN
-        hrusf.FIELD_KEY = '36' and trim(hrusf.A_FIELD) !=''
+        trim(hrusf.A_FIELD) !=''
         then 'Clergy'
         ELSE 'Other'
       END AS OASDI_Reason_for_Exemption_Reference_ID,
@@ -188,9 +188,9 @@ payroll_data AS (
       ON
         TRIM(CAST(pa.Mb_Nbr AS STRING)) = legacy.LegacyID
         AND legacy.SystemIdentifier = 'INF'
-    JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.hrempusf` hrusf
+    LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.hrempusf` hrusf
     on 
-      ded.EMPLOYEE = hrusf.employee and trim(hrusf.A_FIELD) !=''
+      ded.EMPLOYEE = hrusf.employee and hrusf.FIELD_KEY = '36'
       --AND edm.Company = hrusf.Company
     LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
         on
@@ -226,7 +226,7 @@ payroll_data AS (
         END AS Exempt_from_OASDI,
       CASE
         WHEN
-        hrusf.FIELD_KEY = '88' and trim(hrusf.A_FIELD) !=''
+        trim(hrusf.A_FIELD) !=''
         then 'Clergy'
         ELSE 'Other'
       END
@@ -253,9 +253,9 @@ payroll_data AS (
       ON
         TRIM(CAST(edm_main.DED_CODE AS STRING))
         = TRIM(CAST(dc.DED_CODE AS STRING))
-    JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.hrempusf` hrusf
+    LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.hrempusf` hrusf
       ON 
-        hrusf.employee = emp.employee and trim(hrusf.A_FIELD) !=''
+        hrusf.employee = emp.employee and hrusf.FIELD_KEY = '88'
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID
       and legacy.SystemIdentifier = 'STA'

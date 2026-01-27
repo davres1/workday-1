@@ -139,7 +139,7 @@ WITH
   base_data_chi AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      legacy.WD_Employee AS EMPLOYEE,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -173,9 +173,9 @@ WITH
       NET_PERCENT,
       LegacySystem,
       LegacyID,
-      COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
+      COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
+        PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
@@ -184,7 +184,7 @@ WITH
   base_data_mtn AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      legacy.WD_Employee AS EMPLOYEE,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -217,9 +217,9 @@ WITH
       NET_PERCENT,
       LegacySystem,
       LegacyID,
-      COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
+      COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
+        PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
@@ -228,7 +228,7 @@ WITH
   base_data_sta AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      legacy.WD_Employee AS EMPLOYEE,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -264,9 +264,9 @@ WITH
       COUNTRY_CODE,
       LegacySystem,
       LegacyID,
-      COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
+      COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
+        PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
@@ -275,7 +275,7 @@ WITH
   base_data_dh AS (
     SELECT
       CAST(dhemp.Mb_Nbr AS STRING)            AS LegacyID,
-      legacy.WD_Employee                       AS EMPLOYEE,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -315,9 +315,9 @@ WITH
       COUNTRY_CODE,
       LegacySystem,
       LegacyID,
-      COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
+      COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
+        PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
@@ -326,7 +326,7 @@ WITH
   base_data_hah AS (
     SELECT
       distrib.EMPLID AS LegacyID,
-      legacy.WD_Employee AS EMPLOYEE,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       CASE WHEN distrib.DEPOSIT_TYPE = 'B' THEN 'Y' ELSE 'N' END AS DEFAULT_FLAG,
       distrib.PRIORITY AS ACH_DIST_NBR,
       bank.BANK_NM AS DESCRIPTION,
@@ -362,9 +362,9 @@ WITH
       NICKNAME,
       LegacySystem,
       LegacyID,
-      COUNT(ACH_DIST_NBR) OVER (PARTITION BY EMPLOYEE) AS distribution_count,
+      COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
-        PARTITION BY EMPLOYEE, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
+        PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
         ORDER BY CAST(ACH_DIST_NBR AS INT64)
       ) AS non_default_rank
     FROM
@@ -373,7 +373,7 @@ WITH
   base_data_vmc AS (
     SELECT
       emp.EMPLOYEE_NUMBER AS LegacyID,
-      legacy.WD_Employee AS Worker_Reference_ID,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS Worker_Reference_ID,
       distrib.Worker_Country_Reference_ID,
       distrib.Worker_Currency_Reference_ID,
       distrib.Payment_Election_Higher_Order_Rule_ID,
@@ -449,7 +449,7 @@ WITH
 ranked_data_pmc AS (
     SELECT
       CAST(emp.Number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
-      legacy.WD_Employee AS EMPLOYEE,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.ProrationCounterID, -- Assumed to be ProrationCounterID
       lce.Type as Payment_Type_Reference_ID,
       lce.AccountNumber,
@@ -483,7 +483,7 @@ ranked_data_pmc AS (
 ranked_data_tho AS (
     SELECT
       CAST(emp.Number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
-      legacy.WD_Employee AS EMPLOYEE,
+      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.ProrationCounterID, -- Assumed to be ProrationCounterID
       lce.Type as Payment_Type_Reference_ID,
       lce.AccountNumber,
@@ -558,8 +558,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '') AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -609,8 +609,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -670,8 +670,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -721,8 +721,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -783,8 +783,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -835,8 +835,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -896,8 +896,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS  Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS  Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -947,8 +947,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -1072,8 +1072,8 @@ SELECT
   'USA', '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
   CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
   '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN r.DEPOSIT_AMT END AS STRING), ''),
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG != 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 END AS STRING), '') ,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT END AS STRING), ''),
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 END AS STRING), '') ,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING),
   r.LegacySystem, TRIM(r.LegacyID)
 FROM ranked_data_dh r
