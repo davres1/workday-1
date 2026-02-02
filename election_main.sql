@@ -142,6 +142,7 @@ WITH
       CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
+      lce.ACH_DIST_ORDER,
       lce.DESCRIPTION,
       lce.EBNK_ACCT_NBR,
       lce.EBANK_ID,
@@ -176,7 +177,7 @@ WITH
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
         PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
-        ORDER BY CAST(ACH_DIST_NBR AS INT64)
+        ORDER BY CAST(ACH_DIST_ORDER AS INT64)
       ) AS non_default_rank
     FROM
       base_data_chi
@@ -187,6 +188,7 @@ WITH
       CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
+      lce.ACH_DIST_ORDER,
       lce.DESCRIPTION,
       lce.EBNK_ACCT_NBR,
       lce.EBANK_ID,
@@ -198,11 +200,11 @@ WITH
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.employee` emp
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) > DATE '1700-01-01'
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01' 
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON '1_' || CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
-      legacy.SystemIdentifier = 'MTN'
+      legacy.SystemIdentifier = 'MTN' and emp.COMPANY in (1,5)  and emp.EMP_STATUS NOT like 'N%' and TRIM(emp.FICA_NBR) <> ''
   ),
   ranked_data_mtn AS (
     SELECT
@@ -220,7 +222,7 @@ WITH
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
         PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
-        ORDER BY CAST(ACH_DIST_NBR AS INT64)
+        ORDER BY CAST(ACH_DIST_ORDER AS INT64)
       ) AS non_default_rank
     FROM
       base_data_mtn
@@ -231,6 +233,7 @@ WITH
       CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
+      lce.ACH_DIST_ORDER,
       lce.DESCRIPTION,
       lce.EBNK_ACCT_NBR,
       lce.EBANK_ID,
@@ -247,8 +250,7 @@ WITH
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
-      emp.EMP_STATUS NOT IN ('TP','TS','C1','CT') AND legacy.SystemIdentifier = 'STA'
-      
+      emp.EMP_STATUS NOT IN ('TP','TS','C1','CT') AND legacy.SystemIdentifier = 'STA'      
   ),
   ranked_data_sta AS (
     SELECT
@@ -267,7 +269,7 @@ WITH
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
       DENSE_RANK() OVER (
         PARTITION BY LegacyID, CASE WHEN DEFAULT_FLAG = 'Y' THEN 'N' ELSE 'Y' END
-        ORDER BY CAST(ACH_DIST_NBR AS INT64)
+        ORDER BY CAST(ACH_DIST_ORDER AS INT64)
       ) AS non_default_rank
     FROM
       base_data_sta
@@ -583,8 +585,20 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  --COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  --COALESCE(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '') AS Distribution_Percentage,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -634,8 +648,20 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  --COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '') AS Distribution_Percentage,
+  --COALESCE(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '') AS Distribution_Percentage,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -695,8 +721,19 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  --COALESCE(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '')  AS Distribution_Percentage,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -746,8 +783,19 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  --COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -808,8 +856,19 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  --COALESCE(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '')  AS Distribution_Percentage,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -860,8 +919,19 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  --COALESCE(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '')  AS Distribution_Percentage,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -921,8 +991,9 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS  Distribution_Percentage,
+  --COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'N' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  COALESCE(CASE WHEN r.DEFAULT_FLAG = 'N' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '')  AS  Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -972,8 +1043,8 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT ELSE NULL END AS STRING), '') AS Distribution_Amount,
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 ELSE NULL END AS STRING), '')  AS Distribution_Percentage,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
+  COALESCE(CASE WHEN r.DEFAULT_FLAG = 'N' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '')  AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -1026,7 +1097,10 @@ SELECT
   r.Bank_Account_Branch_Name,
   r.Bank_Account_Branch_ID_Number,
   r.Bank_Account_Check_Digit,
-  r.Distribution_Amount,
+  CASE
+    WHEN r.Distribution_Amount = '0.000' THEN ''
+    ELSE ''
+  END Distribution_Amount,
   CAST(SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage, 
   r.Distribution_Balance,
   r.LegacySystem,
@@ -1073,7 +1147,10 @@ SELECT
   r.Bank_Account_Branch_Name,
   r.Bank_Account_Branch_ID_Number,
   r.Bank_Account_Check_Digit,
-  r.Distribution_Amount,
+  CASE
+    WHEN r.Distribution_Amount = '0.000' THEN ''
+    ELSE ''
+  END Distribution_Amount,
   CAST(SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
   r.Distribution_Balance,
   r.LegacySystem,
@@ -1097,8 +1174,19 @@ SELECT
   'USA', '', 'USD', '', '', r.DESCRIPTION, CAST(r.EBNK_ACCT_NBR AS STRING), '', '',
   CASE WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA' WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA' ELSE '' END,
   '', r.DESCRIPTION, '', CAST(r.EBANK_ID AS STRING), '', '', '', '',
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN r.DEPOSIT_AMT END AS STRING), ''),
-  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100 END AS STRING), '') ,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  ''),
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+END AS STRING) ,
+  ---COALESCE(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, ''),
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING),
   r.LegacySystem, TRIM(r.LegacyID)
 FROM ranked_data_dh r
@@ -1145,9 +1233,9 @@ SELECT
   ''                                            AS Bank_Account_Branch_Name,
   ''                                            AS Bank_Account_Branch_ID_Number,
   ''                                            AS Bank_Account_Check_Digit,
-  ''                                            AS Distribution_Amount,
+  COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
   ''                                            AS Distribution_Percentage,
-  '1'                                           AS Distribution_Balance,
+  '1'                                            AS Distribution_Balance,
   r.LegacySystem                                AS LegacySystem,
   TRIM(r.LegacyID)                              AS LegacyID
 FROM ranked_data_dh r
@@ -1205,7 +1293,7 @@ SELECT
   r.LegacyID
 FROM
   ranked_data_pmc r
-
+/*
 union all
 -- PMC SUPPLEMENTAL_PAYMENTS
 SELECT
@@ -1362,6 +1450,7 @@ CROSS JOIN (
   UNION ALL
   SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
 ) AS pay_type
+*/
 UNION ALL
 -- SLC regular payment
 SELECT
@@ -1401,9 +1490,9 @@ SELECT
   '' AS Bank_Account_Branch_Name,
   r.Routing_Number AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
-  CASE WHEN r.is_balance THEN '' ELSE r.Distribution_Amount END AS Distribution_Amount,
+  r.Distribution_Amount  AS Distribution_Amount,
   '' AS Distribution_Percentage,  -- SLC source has no percentage
-  CASE WHEN r.is_balance THEN 'Balance' ELSE '' END AS Distribution_Balance,
+  r.Distribution_Balance AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM ranked_data_slc r 
@@ -1450,7 +1539,7 @@ SELECT
   '' AS Bank_Account_Check_Digit,
   '' AS Distribution_Amount,
   '' AS Distribution_Percentage,
-  'Balance' AS Distribution_Balance,
+  r.Distribution_Balance AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM ranked_data_slc r
