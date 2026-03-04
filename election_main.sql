@@ -152,7 +152,7 @@ WITH
       'CHI'  AS LegacySystem
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_chi.employee` emp
-    LEFT JOIN
+    INNER JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emachdepst` lce
       ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01' AND emp.company=lce.company AND emp.COMPANY = 8900
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
@@ -198,13 +198,13 @@ WITH
       'MTN' AS LegacySystem
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.employee` emp
-    LEFT JOIN
+    INNER JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01' 
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1700-01-01' AND emp.company=lce.company
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON '1_' || CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
-      legacy.SystemIdentifier = 'MTN' and emp.COMPANY in (1,5)  and emp.EMP_STATUS NOT like 'N%' and TRIM(emp.FICA_NBR) <> ''
+      legacy.SystemIdentifier = 'MTN' and emp.COMPANY in (1,5)  and emp.EMP_STATUS NOT like 'N%' AND emp.EMP_STATUS NOT IN ('T ','TE') and TRIM(emp.FICA_NBR) <> ''
   ),
   ranked_data_mtn AS (
     SELECT
@@ -244,9 +244,9 @@ WITH
       'STA' AS LegacySystem
     FROM
       `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.employee` emp
-    LEFT JOIN
+    INNER JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.emachdepst` lce
-      ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1753-01-01'
+      ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1753-01-01' AND emp.company=lce.company
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
       ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
     WHERE
@@ -293,8 +293,8 @@ WITH
       `prj-pvt-oneerp-data-raw-78c9.lawson_dh.employee` emp
       INNER JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.paemployee` dhemp
         ON emp.EMPLOYEE = dhemp.EMPLOYEE AND emp.company=dhemp.company AND emp.COMPANY = 100
-      LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emachdepst` lce
-        ON emp.EMPLOYEE = lce.EMPLOYEE 
+      INNER JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.emachdepst` lce
+        ON emp.EMPLOYEE = lce.EMPLOYEE AND emp.company=lce.company
        --AND lce.END_DATE IS NULL
        AND  DATE(lce.END_DATE) = DATE '1700-01-01'
        --AND lce.COMPANY = 100
@@ -329,26 +329,52 @@ WITH
   base_data_hah AS (
     SELECT
       distrib.EMPLID AS LegacyID,
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
-      CASE WHEN distrib.DEPOSIT_TYPE = 'B' THEN 'Y' ELSE 'N' END AS DEFAULT_FLAG,
+  CASE 
+    WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) 
+    ELSE 'XWALK_ERROR' 
+  END AS EMPLOYEE,
+  CASE 
+    WHEN distrib.DEPOSIT_TYPE ='A' THEN 'N'
+    WHEN distrib.DEPOSIT_TYPE ='B' THEN 'Y'
+    WHEN distrib.DEPOSIT_TYPE ='P' AND distrib.AMOUNT_PCT = 100 THEN 'Y'
+    WHEN distrib.DEPOSIT_TYPE ='P' AND distrib.AMOUNT_PCT != 100 THEN 'N'
+    ELSE 'Other' -- Good practice to catch unexpected codes
+  END AS DEFAULT_FLAG,
       distrib.PRIORITY AS ACH_DIST_NBR,
       bank.BANK_NM AS DESCRIPTION,
       distrib.ACCOUNT_NUM AS EBNK_ACCT_NBR,
       distrib.BANK_CD AS EBANK_ID,
-      distrib.ACCOUNT_TYPE AS ACCOUNT_TYPE,
+      CASE 
+        WHEN distrib.ACCOUNT_TYPE = 'C' THEN 'Checking'
+        WHEN distrib.ACCOUNT_TYPE = 'S' THEN 'Savings'
+        WHEN distrib.ACCOUNT_TYPE = '$' THEN 'Issue Check'
+        ELSE 'Unknown' -- Optional: handles values that don't match the above
+      END AS ACCOUNT_TYPE,
       distrib.DEPOSIT_AMT AS DEPOSIT_AMT,
       distrib.AMOUNT_PCT AS NET_PERCENT,
       distrib.COUNTRY_CD AS COUNTRY_CODE,
       distrib.NICK_NAME AS NICKNAME,
+      distrib.DEPOSIT_TYPE,
+  CASE 
+    WHEN distrib.DEPOSIT_TYPE ='A' THEN 'Amount'
+    WHEN distrib.DEPOSIT_TYPE ='B' THEN 'Balance of Net Pay'
+    WHEN distrib.DEPOSIT_TYPE ='P' AND distrib.AMOUNT_PCT = 100 THEN 'Balance of Net Pay'
+    WHEN distrib.DEPOSIT_TYPE ='P' AND distrib.AMOUNT_PCT != 100 THEN 'Percent'
+    ELSE 'Other' -- Good practice to catch unexpected codes
+  END AS Distribution_Balance,
       legacy.SystemIdentifier AS LegacySystem
-    FROM
+    FROM `prj-dev-ss-oneerp.hah_psoft_hrp.ps_bank_ec_tbl` bank
+    INNER JOIN
       `prj-dev-ss-oneerp.hah_psoft_hrp.ps_dir_dep_distrib` distrib
-    LEFT JOIN
-      `prj-dev-ss-oneerp.hah_psoft_hrp.ps_bank_ec_tbl` bank
-      ON distrib.BANK_CD = bank.BANK_CD
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON distrib.EMPLID = legacy.LegacyID
-    Where legacy.SystemIdentifier = 'HAH'
+    ON distrib.BANK_CD = bank.BANK_CD
+    left JOIN
+    `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+    ON distrib.EMPLID = legacy.LegacyID and legacy.SystemIdentifier = 'HAH'
+WHERE
+distrib.EFFDT = (select max(t2.EFFDT)
+                   from `prj-dev-ss-oneerp.hah_psoft_hrp.ps_dir_dep_distrib` t2
+                   where t2.EMPLID = distrib.EMPLID and t2.BANK_CD =  bank.BANK_CD
+                  )     
   ),
   ranked_data_hah AS (
     SELECT
@@ -363,6 +389,7 @@ WITH
       NET_PERCENT,
       COUNTRY_CODE,
       NICKNAME,
+      Distribution_Balance,
       LegacySystem,
       LegacyID,
       COUNT(ACH_DIST_NBR) OVER (PARTITION BY LegacyID) AS distribution_count,
@@ -442,8 +469,8 @@ WITH
       Distribution_Balance,
       LegacySystem,
       LegacyID,
-      ROW_NUMBER() OVER (PARTITION BY Worker_Reference_ID ORDER BY CAST(Election_Order AS INT64)) AS non_default_rank, -- Assuming Election_Order is pre-ranked
-      COUNT(*) OVER (PARTITION BY Worker_Reference_ID) AS distribution_count,
+      ROW_NUMBER() OVER (PARTITION BY LegacyID ORDER BY CAST(Election_Order AS INT64)) AS non_default_rank, -- Assuming Election_Order is pre-ranked
+      COUNT(*) OVER (PARTITION BY LegacyID) AS distribution_count,
       CASE WHEN Distribution_Balance = '1' THEN 'Y' ELSE 'N' END AS DEFAULT_FLAG -- Derive DEFAULT_FLAG from Distribution_Balance
     FROM
       base_data_vmc
@@ -451,7 +478,7 @@ WITH
 --- PMC Data
 ranked_data_pmc AS (
     SELECT
-  CAST(lce.EmployeeID AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
+  CAST(emp.number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
   CASE 
     WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL 
     THEN CAST(legacy.WD_Employee AS STRING) 
@@ -469,19 +496,22 @@ ranked_data_pmc AS (
   lce.AccountNumber AS EBNK_ACCT_NBR,
   lce.ProrationCounterID AS Election_Order,
   'PMC' AS LegacySystem,
-  legacy.LegacyID
+  emp.Number AS LegacyID
 FROM
   
   `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeeddproration` lce
+INNER JOIN `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` emp
+        ON lce.SourceID = emp.SourceID
+       AND lce.EmployeeID = emp.EmployeeID  
 
 LEFT JOIN
   `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.dppbanks` bank
   ON lce.BANKID = bank.BankID
 LEFT JOIN
   `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-  ON CAST(lce.EmployeeID AS STRING) = legacy.LegacyID
+  ON CAST(emp.Number AS STRING) = legacy.LegacyID AND legacy.SystemIdentifier = 'PMC'
 WHERE
-  legacy.SystemIdentifier = 'PMC'
+  1=1
 ),
 --- THO Data
 ranked_data_tho AS (
@@ -524,17 +554,18 @@ ranked_data_slc AS (
     CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS Worker_Reference_ID,
     emp.`Order` AS Election_Order,
     emp.Payment_Election_Rule_Reference_ID,
-    COALESCE(emp.Country_Reference_ID, 'USA') AS Country_Reference_ID,
-    COALESCE(emp.Currency_Reference_ID, 'USD') AS Currency_Reference_ID,
+    emp.Country_Reference_ID AS Country_Reference_ID,
+    emp.Currency_Reference_ID AS Currency_Reference_ID,
     emp.Payment_Type_Reference_ID,
     emp.Bank_Name,
     emp.Account_Number,
     emp.Routing_Number,
-    emp.Distribution_Amount,
-    emp.Distribution_Balance,
-    (Distribution_Balance IS NOT NULL AND TRIM(Distribution_Balance) != '') AS is_balance,
-    'SLC' AS LegacySystem,
-    CAST(emp.Position_ID AS STRING) AS LegacyID
+    emp.Distrbuition_Amount  AS Distribution_Amount,
+   emp.Distribuition_Percent AS Distribution_Percentage,
+    emp.Distribuition_Balance AS Distribution_Balance,
+    emp.full_net,
+    CAST(emp.Position_ID AS STRING) AS LegacyID,
+    legacy.SystemIdentifier as LegacySystem
   FROM `prj-dev-ss-oneerp.oneerp.SLC_SubmitPaymentElectionEnrollment` emp
   LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
     ON CAST(emp.Position_ID AS STRING) = legacy.LegacyID
@@ -594,7 +625,7 @@ SELECT
     
     -- 2. Default is N and Percentage exists: Already a string from your logic
     WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
-        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
     
     -- 3. Otherwise: Cast the rank to string
     ELSE '0'
@@ -657,7 +688,7 @@ SELECT
     
     -- 2. Default is N and Percentage exists: Already a string from your logic
     WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
-        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
     
     -- 3. Otherwise: Cast the rank to string
     ELSE '0'
@@ -729,7 +760,7 @@ SELECT
     
     -- 2. Default is N and Percentage exists: Already a string from your logic
     WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
-        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
     
     -- 3. Otherwise: Cast the rank to string
     ELSE '0'
@@ -791,7 +822,7 @@ SELECT
     
     -- 2. Default is N and Percentage exists: Already a string from your logic
     WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
-        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
     
     -- 3. Otherwise: Cast the rank to string
     ELSE '0'
@@ -864,7 +895,7 @@ SELECT
     
     -- 2. Default is N and Percentage exists: Already a string from your logic
     WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
-        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
     
     -- 3. Otherwise: Cast the rank to string
     ELSE '0'
@@ -927,7 +958,7 @@ SELECT
     
     -- 2. Default is N and Percentage exists: Already a string from your logic
     WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
-        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
     
     -- 3. Otherwise: Cast the rank to string
     ELSE '0'
@@ -978,11 +1009,7 @@ SELECT
   CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
   '' AS Roll_Number,
   '' AS Bank_Account_Type_Code,
-  CASE
-    WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA'
-    WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA'
-    ELSE ''
-  END AS Bank_Account_Type_Reference_ID,
+  r.ACCOUNT_TYPE AS Bank_Account_Type_Reference_ID,
   '' AS Bank_Account_Type_Reference_ID_Type,
   r.DESCRIPTION AS Bank_Name,
   '' AS Bank_Account_IBAN,
@@ -993,12 +1020,22 @@ SELECT
   '' AS Bank_Account_Check_Digit,
   --COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'N' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
-  COALESCE(CASE WHEN r.DEFAULT_FLAG = 'N' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '')  AS  Distribution_Percentage,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
-  ranked_data_hah r
+  ranked_data_hah r 
 UNION ALL
 -- HAH: Supplemental Payments (defaults only)
 SELECT
@@ -1030,11 +1067,7 @@ SELECT
   CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
   '' AS Roll_Number,
   '' AS Bank_Account_Type_Code,
-  CASE
-    WHEN r.ACCOUNT_TYPE = 'C' THEN 'DDA'
-    WHEN r.ACCOUNT_TYPE = 'S' THEN 'SA'
-    ELSE ''
-  END AS Bank_Account_Type_Reference_ID,
+  r.ACCOUNT_TYPE AS Bank_Account_Type_Reference_ID,
   '' AS Bank_Account_Type_Reference_ID_Type,
   r.DESCRIPTION AS Bank_Name,
   '' AS Bank_Account_IBAN,
@@ -1044,7 +1077,17 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   COALESCE(CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN NULL WHEN r.DEFAULT_FLAG = 'N' THEN r.DEPOSIT_AMT END AS STRING),  '') AS Distribution_Amount,
-  COALESCE(CASE WHEN r.DEFAULT_FLAG = 'N' THEN FORMAT('%.3f', SAFE_CAST(r.NET_PERCENT AS FLOAT64) / 100) ELSE NULL END, '')  AS Distribution_Percentage,
+  CAST(CASE 
+    -- 1. Default is Y: Cast the count to string
+    WHEN r.DEFAULT_FLAG = 'Y' THEN ''
+    
+    -- 2. Default is N and Percentage exists: Already a string from your logic
+    WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
+    
+    -- 3. Otherwise: Cast the rank to string
+    ELSE '0'
+  END AS STRING) AS Distribution_Percentage,
   CAST(CASE WHEN r.DEFAULT_FLAG = 'Y' THEN 1 ELSE 0 END AS STRING) AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -1056,8 +1099,8 @@ CROSS JOIN (
   UNION ALL
   SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
 ) AS pay_type
-WHERE
-  r.DEFAULT_FLAG = 'Y'
+--WHERE
+  --r.DEFAULT_FLAG = 'Y'
 UNION ALL
 -- VMC: Regular Payments (all accounts)
 SELECT
@@ -1099,9 +1142,9 @@ SELECT
   r.Bank_Account_Check_Digit,
   CASE
     WHEN r.Distribution_Amount = '0.000' THEN ''
-    ELSE ''
-  END Distribution_Amount,
-  CAST(SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage, 
+    ELSE r.Distribution_Amount
+  END AS Distribution_Amount,
+  FORMAT('%.2f', SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100) AS Distribution_Percentage, 
   r.Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -1149,9 +1192,10 @@ SELECT
   r.Bank_Account_Check_Digit,
   CASE
     WHEN r.Distribution_Amount = '0.000' THEN ''
+    WHEN r.Distribution_Amount > '0.000' THEN r.Distribution_Amount
     ELSE ''
   END Distribution_Amount,
-  CAST(SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
+  CAST(ROUND((SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100), 2) AS STRING) AS Distribution_Percentage,
   r.Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -1181,7 +1225,7 @@ SELECT
     
     -- 2. Default is N and Percentage exists: Already a string from your logic
     WHEN r.DEFAULT_FLAG = 'N' AND r.NET_PERCENT IS NOT NULL 
-        THEN CAST((CAST(r.NET_PERCENT AS FLOAT64) / 100) AS STRING)
+        THEN FORMAT('%.2f', CAST(r.NET_PERCENT AS FLOAT64) / 100)
     
     -- 3. Otherwise: Cast the rank to string
     ELSE '0'
@@ -1250,7 +1294,7 @@ union all
 -- PMC Regular_Payments
 SELECT
   'N' AS Retain_Unused_Worker_Bank_Accounts,
-  r.Emp_Number AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
+  r.EMPLOYEE AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
   '' AS Worker_Reference_ID_Type,
   'USA' AS Worker_Country_Reference_ID,
   '' AS Worker_Country_Reference_ID_Type,
@@ -1286,13 +1330,96 @@ SELECT
   '' AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   -- Logic for Amount/Percent/Balance based on Default Flag
-  r.ValueString AS Distribution_Amount,
-  CAST(SAFE_CAST(r.ValueString AS FLOAT64) / 100 AS STRING) AS Distribution_Percentage,
-  r.ValueString AS Distribution_Balance,
+  CASE
+        WHEN SAFE_CAST(r.ValueString AS INT64) IS NOT NULL THEN ''
+        WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL THEN FORMAT('%.2f', (SAFE_CAST(r.ValueString AS FLOAT64)))
+        ELSE ''
+  END AS Distribution_Amount,
+  --CASE
+  --      WHEN SAFE_CAST(r.ValueString AS INT64) IS NOT NULL THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64) / 100)
+  --      WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL THEN ''
+  --      ELSE ''
+  --END AS Distribution_Percentage,
+CASE 
+    WHEN SAFE_CAST(r.ValueString AS FLOAT64) = SAFE_CAST(SAFE_CAST(r.ValueString AS FLOAT64) AS INT64)
+    THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64) * 0.1)
+    WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL 
+    THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64))  
+    ELSE '' 
+END AS Distribution_Percentage,
+  CASE
+    WHEN r.ValueString = 'BALANCE' THEN '1'
+    ELSE '0'
+  END AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
 FROM
   ranked_data_pmc r
+-- PMC Supplemental Payments
+UNION ALL
+SELECT
+  'N' AS Retain_Unused_Worker_Bank_Accounts,
+  r.EMPLOYEE AS Worker_Reference_ID, -- FIX: Mapped to HrEmployees.Number
+  '' AS Worker_Reference_ID_Type,
+  'USA' AS Worker_Country_Reference_ID,
+  '' AS Worker_Country_Reference_ID_Type,
+  'USD' AS Worker_Currency_Reference_ID,
+  '' AS Worker_Currency_Reference_ID_Type,
+  pay_type.Rule_ID AS Payment_Election_Higher_Order_Rule_ID, -- FIX: Updated per mapping
+  '' AS Payment_Election_Higher_Order_Rule_ID_Type,
+  CAST(r.Election_Order AS STRING) AS Election_Order, -- FIX: Mapped to ProrationCounterID (ACH_DIST_NBR)
+  '' AS Payment_Election_Rule_ID,
+  '' AS Payment_Election_Rule_ID_Type,
+  '' AS Payment_Election_Rule_Country,
+  '' AS Payment_Election_Rule_Country_Type,
+  '' AS Payment_Election_Rule_Currency_ID,
+  '' AS Payment_Election_Rule_Currency_ID_Type,
+  r.Payment_Type_Reference_ID AS Payment_Type_Reference_ID, -- Mapped to Type (Assumed Direct Deposit for this table)
+  '' AS Payment_Type_Reference_ID_Type,
+  'USA' AS Bank_Account_Country_Reference_ID,
+  '' AS Bank_Account_Country_Reference_ID_Type,
+  'USD' AS Bank_Account_Currency_Reference_ID,
+  '' AS Bank_Account_Currency_Reference_ID_Type,
+  '' AS Bank_Account_Nickname,
+  r.Bank_Transit_Source AS Bank_Account_Name,
+  CAST(r.EBNK_ACCT_NBR AS STRING) AS Bank_Account_Number,
+  '' AS Roll_Number,
+  r.Bank_Account_Type_Code AS Bank_Account_Type_Code,
+  r.Bank_Account_Type_Reference_ID Bank_Account_Type_Reference_ID,
+  '' AS Bank_Account_Type_Reference_ID_Type,
+  r.Bank_Name_Source AS Bank_Name, -- FIX: Mapped to DPpBanks.Name
+  '' AS Bank_Account_IBAN,
+  CAST(r.Bank_Transit_Source AS STRING) AS Bank_Account_ID_Number, -- FIX: Mapped to DPpBanks.TransitNumber
+  '' AS Bank_Account_BIC,
+  '' AS Bank_Account_Branch_Name,
+  '' AS Bank_Account_Branch_ID_Number,
+  '' AS Bank_Account_Check_Digit,
+  -- Logic for Amount/Percent/Balance based on Default Flag
+  CASE
+        WHEN SAFE_CAST(r.ValueString AS INT64) IS NOT NULL THEN ''
+        WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL THEN FORMAT('%.2f', (SAFE_CAST(r.ValueString AS FLOAT64)))
+        ELSE ''
+  END AS Distribution_Amount,
+  CASE
+        WHEN SAFE_CAST(r.ValueString AS INT64) IS NOT NULL THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64) / 100)
+        WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL THEN ''
+        ELSE ''
+  END AS Distribution_Percentage,
+  CASE
+    WHEN r.ValueString = 'BALANCE' THEN '1'
+    ELSE '0'
+  END AS Distribution_Balance,
+  r.LegacySystem,
+  r.LegacyID
+FROM
+  ranked_data_pmc r
+CROSS JOIN (
+  -- Ensure both sides of this UNION have exactly 1 column named 'Rule_ID'
+  SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
+  UNION ALL
+  SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
+) AS pay_type
+WHERE r.ValueString = 'BALANCE'  
 /*
 union all
 -- PMC SUPPLEMENTAL_PAYMENTS
@@ -1491,7 +1618,10 @@ SELECT
   r.Routing_Number AS Bank_Account_Branch_ID_Number,
   '' AS Bank_Account_Check_Digit,
   r.Distribution_Amount  AS Distribution_Amount,
-  '' AS Distribution_Percentage,  -- SLC source has no percentage
+    CASE
+        WHEN r.Distribution_Percentage > '0.00' THEN FORMAT('%.2f', SAFE_CAST(r.Distribution_Percentage AS FLOAT64) / 100) 
+        ELSE ''
+    END AS Distribution_Percentage,  -- SLC source has no percentage EEM- No SLC does have percentage
   r.Distribution_Balance AS Distribution_Balance,
   r.LegacySystem,
   r.LegacyID
@@ -1548,7 +1678,7 @@ CROSS JOIN (
   SELECT 'EXPENSE_PAYMENTS' AS Rule_ID
   UNION ALL
   SELECT 'SUPPLEMENTAL_PAYMENTS' AS Rule_ID
-) AS pay_type
+) AS pay_type Where r.full_net='Yes'
 ;
 
 
@@ -1632,4 +1762,12 @@ CROSS JOIN (
   Distribution_Amount,
   Distribution_Percentage,
   Distribution_Balance
-   from `prj-dev-ss-oneerp.oneerp.process_submit_payment_election_enrollment` ;
+   from `prj-dev-ss-oneerp.oneerp.process_submit_payment_election_enrollment`
+  ORDER BY Worker_Reference_ID, 
+  CASE Payment_Election_Higher_Order_Rule_ID
+      WHEN 'REGULAR_PAYMENTS' THEN 1
+      WHEN 'EXPENSE_PAYMENTS' THEN 2
+      WHEN 'SUPPLEMENTAL_PAYMENTS' THEN 3
+      ELSE 4
+  END,
+  Election_Order;
