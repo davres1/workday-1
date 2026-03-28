@@ -139,7 +139,7 @@ WITH
   base_data_chi AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
+      CASE WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.ACH_DIST_ORDER,
@@ -155,11 +155,11 @@ WITH
     INNER JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emachdepst` lce
       ON emp.EMPLOYEE = lce.EMPLOYEE AND  DATE(lce.END_DATE) = DATE '1700-01-01' AND emp.company=lce.company AND emp.COMPANY = 8900
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
+    INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyEmployee -- FIX: Cast to STRING
     WHERE
       emp.EMP_STATUS NOT IN ('C1', 'C2', 'T2')
-      AND legacy.SystemIdentifier = 'INF'
+      AND legacy.LegacySystem = 'INF'
   ),
   ranked_data_chi AS (
     SELECT
@@ -185,7 +185,7 @@ WITH
   base_data_mtn AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
+      CASE WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.ACH_DIST_ORDER,
@@ -201,10 +201,10 @@ WITH
     INNER JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_mtn.emachdepst` lce
       ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1700-01-01' AND emp.company=lce.company
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON '1_' || CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
+    INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON '1_' || CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyEmployee -- FIX: Cast to STRING
     WHERE
-      legacy.SystemIdentifier = 'MTN' and emp.COMPANY in (1,5)  and emp.EMP_STATUS NOT like 'N%' AND emp.EMP_STATUS NOT IN ('T ','TE') and TRIM(emp.FICA_NBR) <> ''
+      legacy.LegacySystem = 'MTN' and emp.COMPANY in (1,5)  and emp.EMP_STATUS NOT like 'N%' AND emp.EMP_STATUS NOT IN ('T ','TE') and TRIM(emp.FICA_NBR) <> ''
   ),
   ranked_data_mtn AS (
     SELECT
@@ -230,7 +230,7 @@ WITH
   base_data_sta AS (
     SELECT
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
+      CASE WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.ACH_DIST_ORDER,
@@ -247,10 +247,10 @@ WITH
     INNER JOIN
       `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.emachdepst` lce
       ON emp.EMPLOYEE = lce.EMPLOYEE AND DATE(lce.END_DATE) = DATE '1753-01-01' AND emp.company=lce.company
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID -- FIX: Cast to STRING
+    INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyEmployee -- FIX: Cast to STRING
     WHERE
-      emp.EMP_STATUS NOT IN ('TP','TS','C1','CT') AND legacy.SystemIdentifier = 'STA'      
+      emp.EMP_STATUS NOT IN ('TP','TS','C1','CT') AND legacy.LegacySystem = 'STA'      
   ),
   ranked_data_sta AS (
     SELECT
@@ -277,7 +277,7 @@ WITH
   base_data_dh AS (
     SELECT
       CAST(dhemp.Mb_Nbr AS STRING)            AS LegacyID,
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
+      CASE WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.DEFAULT_FLAG,
       lce.ACH_DIST_NBR,
       lce.DESCRIPTION,
@@ -298,9 +298,9 @@ WITH
        --AND lce.END_DATE IS NULL
        AND  DATE(lce.END_DATE) = DATE '1700-01-01'
        --AND lce.COMPANY = 100
-      LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-        ON CAST(TRIM(dhemp.Mb_Nbr) AS STRING) = legacy.LegacyID
-       AND legacy.SystemIdentifier = 'INF'
+      INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+        ON CAST(TRIM(dhemp.Mb_Nbr) AS STRING) = legacy.LegacyEmployee
+       AND legacy.LegacySystem = 'INF'
     WHERE
       emp.EMP_STATUS NOT IN ('T2', 'ZI', 'ZA')
   ),
@@ -330,7 +330,7 @@ WITH
     SELECT
       distrib.EMPLID AS LegacyID,
   CASE 
-    WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) 
+    WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) 
     ELSE 'XWALK_ERROR' 
   END AS EMPLOYEE,
   CASE 
@@ -362,14 +362,13 @@ WITH
     WHEN distrib.DEPOSIT_TYPE ='P' AND distrib.AMOUNT_PCT != 100 THEN 'Percent'
     ELSE 'Other' -- Good practice to catch unexpected codes
   END AS Distribution_Balance,
-      legacy.SystemIdentifier AS LegacySystem
+      legacy.LegacySystem AS LegacySystem
     FROM `prj-dev-ss-oneerp.hah_psoft_hrp.ps_bank_ec_tbl` bank
     INNER JOIN
       `prj-dev-ss-oneerp.hah_psoft_hrp.ps_dir_dep_distrib` distrib
     ON distrib.BANK_CD = bank.BANK_CD
-    left JOIN
-    `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-    ON distrib.EMPLID = legacy.LegacyID and legacy.SystemIdentifier = 'HAH'
+    INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+    ON distrib.EMPLID = legacy.LegacyEmployee and legacy.LegacySystem = 'HAH'
 WHERE
 distrib.EFFDT = (select max(t2.EFFDT)
                    from `prj-dev-ss-oneerp.hah_psoft_hrp.ps_dir_dep_distrib` t2
@@ -403,7 +402,7 @@ distrib.EFFDT = (select max(t2.EFFDT)
   base_data_vmc AS (
     SELECT
       emp.EMPLOYEE_NUMBER AS LegacyID,
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS Worker_Reference_ID,
+      CASE WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) ELSE 'XWALK_ERROR' END AS Worker_Reference_ID,
       distrib.Worker_Country_Reference_ID,
       distrib.Worker_Currency_Reference_ID,
       distrib.Payment_Election_Higher_Order_Rule_ID,
@@ -427,19 +426,19 @@ distrib.EFFDT = (select max(t2.EFFDT)
       distrib.Distribution_Amount,
       distrib.Distribution_Percentage,
       distrib.Distribution_Balance,
-      legacy.SystemIdentifier AS LegacySystem
+      legacy.LegacySystem AS LegacySystem
     FROM
       `prj-dev-ss-oneerp.vmmc_erp.vmc_pay_direct_deposit` distrib
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.vmmc_erp.per_all_people_f` emp
       ON emp.EMPLOYEE_NUMBER = distrib.Worker_Reference_ID
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON emp.EMPLOYEE_NUMBER = legacy.LegacyID -- Assumes EMPLOYEE_NUMBER is STRING/LegacyID is STRING
+    INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON emp.EMPLOYEE_NUMBER = legacy.LegacyEmployee -- Assumes EMPLOYEE_NUMBER is STRING/LegacyID is STRING
     WHERE
       emp.current_employee_flag = 'Y'
       AND emp.effective_end_date >= CURRENT_DATE()
       AND emp.effective_start_date <= CURRENT_DATE()
-      AND legacy.SystemIdentifier = 'VMC'
+      AND legacy.LegacySystem = 'VMC'
   ),
   ranked_data_vmc AS (
     SELECT
@@ -480,8 +479,8 @@ ranked_data_pmc AS (
     SELECT
   CAST(emp.number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
   CASE 
-    WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL 
-    THEN CAST(legacy.WD_Employee AS STRING) 
+    WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL 
+    THEN CAST(legacy.Employee_ID AS STRING) 
     ELSE 'XWALK_ERROR' 
   END AS EMPLOYEE,
   lce.ProrationCounterID, -- Assumed to be ProrationCounterID
@@ -508,8 +507,8 @@ LEFT JOIN
   `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.dppbanks` bank
   ON lce.BANKID = bank.BankID
 LEFT JOIN
-  `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-  ON CAST(emp.Number AS STRING) = legacy.LegacyID AND legacy.SystemIdentifier = 'PMC'
+  `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+  ON CAST(emp.Number AS STRING) = legacy.LegacyEmployee AND legacy.LegacySystem = 'PMC'
 WHERE
   1=1
 ),
@@ -517,7 +516,7 @@ WHERE
 ranked_data_tho AS (
     SELECT
       CAST(emp.Number AS STRING) AS Emp_Number, -- Mapped: Worker_Reference_ID
-      CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
+      CASE WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) ELSE 'XWALK_ERROR' END AS EMPLOYEE,
       lce.ProrationCounterID, -- Assumed to be ProrationCounterID
       lce.Type as Payment_Type_Reference_ID,
       lce.AccountNumber,
@@ -532,7 +531,7 @@ ranked_data_tho AS (
       -- Added Type if available in source, otherwise defaulting in final select
       -- lce.Type, 
       'THO' AS LegacySystem,
-      legacy.LegacyID
+      legacy.LegacyEmployee
     FROM
       `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` emp
     LEFT JOIN
@@ -542,16 +541,16 @@ ranked_data_tho AS (
       `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.dppbanks` bank
       -- FIX: Added ON clause. Verify if 'BankID' is the correct column in dppbanks
       ON lce.BANKID = bank.BankID 
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON CAST(emp.Number AS STRING) = legacy.LegacyID 
+    INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON CAST(emp.Number AS STRING) = legacy.LegacyEmployee 
     WHERE
-      legacy.SystemIdentifier = 'THO'
+      legacy.LegacySystem = 'THO'
 ),
 
 --- SLC ranked data
 ranked_data_slc AS (
   SELECT
-    CASE WHEN CAST(legacy.WD_Employee AS STRING) IS NOT NULL THEN CAST(legacy.WD_Employee AS STRING) ELSE 'XWALK_ERROR' END AS Worker_Reference_ID,
+    CASE WHEN CAST(legacy.Employee_ID AS STRING) IS NOT NULL THEN CAST(legacy.Employee_ID AS STRING) ELSE 'XWALK_ERROR' END AS Worker_Reference_ID,
     emp.`Order` AS Election_Order,
     emp.Payment_Election_Rule_Reference_ID,
     emp.Country_Reference_ID AS Country_Reference_ID,
@@ -560,16 +559,16 @@ ranked_data_slc AS (
     emp.Bank_Name,
     emp.Account_Number,
     emp.Routing_Number,
-    emp.Distrbuition_Amount  AS Distribution_Amount,
-   emp.Distribuition_Percent AS Distribution_Percentage,
+    emp.Deduction_Amount AS Distribution_Amount, --emp.Distrbuition_Amount  AS Distribution_Amount,
+    emp.Deduction_Percent AS Distribution_Percentage, --emp.Distribuition_Percent AS Distribution_Percentage,
     emp.Distribuition_Balance AS Distribution_Balance,
     emp.full_net,
     CAST(emp.Position_ID AS STRING) AS LegacyID,
-    legacy.SystemIdentifier as LegacySystem
+    legacy.LegacySystem as LegacySystem
   FROM `prj-dev-ss-oneerp.oneerp.SLC_SubmitPaymentElectionEnrollment` emp
-  LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-    ON CAST(emp.Position_ID AS STRING) = legacy.LegacyID
-    AND legacy.SystemIdentifier = 'SLC' 
+  INNER JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+    ON CAST(emp.Position_ID AS STRING) = legacy.LegacyEmployee
+    AND legacy.LegacySystem = 'SLC' 
   ) 
 -- CHI: Regular Payments (all accounts)
 SELECT
@@ -1335,18 +1334,11 @@ SELECT
         WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL THEN FORMAT('%.2f', (SAFE_CAST(r.ValueString AS FLOAT64)))
         ELSE ''
   END AS Distribution_Amount,
-  --CASE
-  --      WHEN SAFE_CAST(r.ValueString AS INT64) IS NOT NULL THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64) / 100)
-  --      WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL THEN ''
-  --      ELSE ''
-  --END AS Distribution_Percentage,
-CASE 
-    WHEN SAFE_CAST(r.ValueString AS FLOAT64) = SAFE_CAST(SAFE_CAST(r.ValueString AS FLOAT64) AS INT64)
-    THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64) * 0.1)
-    WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL 
-    THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64))  
-    ELSE '' 
-END AS Distribution_Percentage,
+  CASE
+        WHEN SAFE_CAST(r.ValueString AS INT64) IS NOT NULL THEN FORMAT('%.2f', SAFE_CAST(r.ValueString AS FLOAT64) / 100)
+        WHEN SAFE_CAST(r.ValueString AS FLOAT64) IS NOT NULL THEN ''
+        ELSE ''
+  END AS Distribution_Percentage, 
   CASE
     WHEN r.ValueString = 'BALANCE' THEN '1'
     ELSE '0'

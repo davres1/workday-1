@@ -71,7 +71,7 @@ Dh_Unique_Positions AS (
 --- CHI - multiple rows for multiple position
 payroll_data AS (
     SELECT DISTINCT
-      CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
+      CAST(legacy.Employee_ID AS STRING) AS Worker_Reference_ID,
       '' --cpos.Position_ID           
         AS Position_Reference_ID,
       '' AS All_Positions,
@@ -109,10 +109,10 @@ payroll_data AS (
         e.EMPLOYEE = pos.EMPLOYEE
         AND e.Company = 8900
         AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
       ON
-        CAST(e.EMPLOYEE AS STRING) = legacy.LegacyID
-        AND legacy.SystemIdentifier = 'INF'
+        CAST(e.EMPLOYEE AS STRING) = legacy.LegacyEmployee
+        AND legacy.LegacySystem = 'INF'
     LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
         on
         cpos.LegacySystem = 'INF' 
@@ -138,17 +138,17 @@ payroll_data AS (
       Worker_Reference_ID AS LegacyID,
       '' AS LawsonLegacyID
     FROM `prj-dev-ss-oneerp.vmmc_erp.vmc_pay_FICA_OASDIs` emp
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON Worker_Reference_ID = legacy.LegacyID
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON Worker_Reference_ID = legacy.LegacyEmployee
     LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
     ON cpos.LegacySystem = 'VMC'
-      AND  cpos.LegacyEmployee = legacy.LegacyID
+      AND  cpos.LegacyEmployee = legacy.LegacyEmployee
       
     UNION ALL
 
     -- DH
     SELECT DISTINCT
-      CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
+      CAST(legacy.Employee_ID AS STRING) AS Worker_Reference_ID,
       '' --cpos.Position_ID       
         AS Position_Reference_ID,
       '' AS All_Positions,
@@ -184,10 +184,10 @@ payroll_data AS (
     -- JOIN TO DE-DUPLICATED POSITIONS (Now uses top-level CTE)
     JOIN Dh_Unique_Positions pos
       ON pa.EMPLOYEE = pos.EMPLOYEE
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
       ON
-        TRIM(CAST(pa.Mb_Nbr AS STRING)) = legacy.LegacyID
-        AND legacy.SystemIdentifier = 'INF'
+        TRIM(CAST(pa.Mb_Nbr AS STRING)) = legacy.LegacyEmployee
+        AND legacy.LegacySystem = 'INF'
     LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_dh.hrempusf` hrusf
     on 
       ded.EMPLOYEE = hrusf.employee and hrusf.FIELD_KEY = '36'
@@ -202,7 +202,7 @@ payroll_data AS (
 
     -- STA (St. Alexius) - NOTE: This section still needs de-duplication logic (like the DH section)
     SELECT DISTINCT
-      CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
+      CAST(legacy.Employee_ID AS STRING) AS Worker_Reference_ID,
       cpos.Position_ID 
         AS Position_Reference_ID,
       '' AS All_Positions,
@@ -256,9 +256,9 @@ payroll_data AS (
     LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.hrempusf` hrusf
       ON 
         hrusf.employee = emp.employee and hrusf.FIELD_KEY = '88'
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyID
-      and legacy.SystemIdentifier = 'STA'
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON CAST(emp.EMPLOYEE AS STRING) = legacy.LegacyEmployee
+      and legacy.LegacySystem = 'STA'
     LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
     ON cpos.LegacySystem = 'STA' 
       AND  cpos.LegacyEmployee = CAST(emp.EMPLOYEE AS STRING) 
@@ -273,7 +273,7 @@ payroll_data AS (
 -- PMC
   Union all
   SELECT DISTINCT
-      CAST(legacy.WD_Employee AS STRING) AS Worker_Reference_ID,
+      CAST(legacy.Employee_ID AS STRING) AS Worker_Reference_ID,
       cpos.Position_ID 
         AS Position_Reference_ID,
       '' AS All_Positions,
@@ -294,15 +294,15 @@ payroll_data AS (
       CAST(hrp.EmployeeID AS STRING) AS LegacyID,
       CAST(hrp.EmployeeID AS STRING) AS LawsonLegacyID -- FIX: Populated
     FROM `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepayrolls` hrp
-    LEFT JOIN `prj-dev-ss-oneerp.oneerp.map_employee` legacy
-      ON CAST(hrp.EmployeeID AS STRING) = legacy.LegacyID
-      and legacy.SystemIdentifier = 'PMC'
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
+      ON CAST(hrp.EmployeeID AS STRING) = legacy.LegacyEmployee
+      and legacy.LegacySystem = 'PMC'
     JOIN `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepersonelpositions` hremp
       ON
         CAST(hrp.EmployeeID AS STRING) = CAST(hrp.EmployeeID AS STRING)    
     LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
     ON   cpos.LegacyEmployee = CAST(hrp.EmployeeID AS STRING)
-    where legacy.SystemIdentifier = 'PMC'
+    where legacy.LegacySystem = 'PMC'
       )
 
 
