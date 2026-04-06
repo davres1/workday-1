@@ -274,36 +274,43 @@ payroll_data AS (
   Union all
   SELECT DISTINCT
       CAST(legacy.Employee_ID AS STRING) AS Worker_Reference_ID,
-      cpos.Position_ID 
-        AS Position_Reference_ID,
+      cpos.Position_ID AS Position_Reference_ID,
       '' AS All_Positions,
-      --TIMESTAMP(edm_main.EFFECT_DATE) AS Effective_As_Of,
-      FORMAT_DATE('%Y-%m-%d', CAST(hremp.HireDateTime AS DATE)) AS Effective_As_Of,
-      '' AS Apply_To_Worker,
+      FORMAT_DATE('%Y-%m-%d', DATE(hremp.HireDateTime)) AS Effective_As_Of,
+      -- Note: These CASE statements are currently static due to your WHERE clause filters
       CASE
-        WHEN
-          hrp.DeptID='01.8605' and hrp.JobCodeID='8012'
-          THEN 1
+        WHEN hrp.DeptID = '01.8605' AND hrp.JobCodeID = '8012' THEN 'N'
+        ELSE 'Y'
+      END AS Apply_To_Worker,
+      CASE
+        WHEN hrp.DeptID = '01.8605' AND hrp.JobCodeID = '8012' THEN 1
         ELSE 0
       END AS Exempt_from_OASDI,
       CASE
-            WHEN hrp.DeptID='01.8605' AND hrp.JobCodeID='8012' 
-        THEN 'Clergy' ELSE 'Others'
+        WHEN hrp.DeptID = '01.8605' AND hrp.JobCodeID = '8012' THEN 'Clergy' 
+        ELSE 'Others'
       END AS OASDI_Reason_for_Exemption_Reference_ID,
       'PMC' AS LegacySystem,
       CAST(hrp.EmployeeID AS STRING) AS LegacyID,
-      CAST(hrp.EmployeeID AS STRING) AS LawsonLegacyID -- FIX: Populated
-    FROM `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepayrolls` hrp
+      CAST(hrp.EmployeeID AS STRING) AS LawsonLegacyID
+    FROM `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployees` hr
+    LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepayrolls` hrp
+        ON hr.number = hrp.EmployeeID
+    LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepersonelpositions` hremp
+        ON hr.number = hremp.EmployeeID 
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
-      ON CAST(hrp.EmployeeID AS STRING) = legacy.LegacyEmployee
-      and legacy.LegacySystem = 'PMC'
-    JOIN `prj-pvt-oneerp-data-raw-78c9.meditech_pmc_pvt.hremployeepersonelpositions` hremp
-      ON
-        CAST(hrp.EmployeeID AS STRING) = CAST(hrp.EmployeeID AS STRING)    
-    LEFT JOIN prj-dev-ss-oneerp.oneerp.process_create_position cpos
-    ON   cpos.LegacyEmployee = CAST(hrp.EmployeeID AS STRING)
-    where legacy.LegacySystem = 'PMC'
-      )
+        ON CAST(hrp.EmployeeID AS STRING) = legacy.LegacyEmployee
+        AND legacy.LegacySystem = 'PMC'
+    LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_create_position` cpos
+        ON CAST(hrp.EmployeeID AS STRING) = cpos.LegacyEmployee
+WHERE 
+    (hrp.PayrollID != 'REGULAR' AND hrp.Active = 'Y' and hremp.Status  in ('ACTIVE','NEW')
+    OR (hremp.Status = 'TERM'  AND  hremp.StatusDateTime >= TIMESTAMP("2026-01-01")))
+    AND hrp.DeptID = '01.8605' 
+    AND hrp.JobCodeID = '8012'
+    --AND hremp.Status = 'TERM'
+    --AND hremp.StatusDateTime >= TIMESTAMP("2026-01-01")
+)
 
 
 
