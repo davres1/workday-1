@@ -93,7 +93,7 @@ payroll_data AS (
       'CHI' AS LegacySystem,
       CAST(e.EMPLOYEE AS STRING) AS LegacyID,
       CAST(e.EMPLOYEE AS STRING) AS LawsonLegacyID -- FIX: Populated
-    FROM `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emdedmastr` edm
+    FROM `prj-dev-ss-oneerp.oneerp.run_date_tbl` rdt, `prj-pvt-oneerp-data-raw-78c9.lawson_chi.emdedmastr` edm
     LEFT JOIN `prj-dev-ss-oneerp.lawson_chi.dedcode` dc
       ON edm.Ded_Code = dc.Ded_Code
     LEFT JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_chi.employee` e
@@ -108,7 +108,7 @@ payroll_data AS (
       ON
         e.EMPLOYEE = pos.EMPLOYEE
         AND e.Company = 8900
-        AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= CURRENT_DATE())
+        AND (pos.End_Date = DATE '1700-01-01' OR pos.End_Date >= rdt.Run_Date)
     LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` legacy
       ON
         CAST(e.EMPLOYEE AS STRING) = legacy.LegacyEmployee
@@ -234,13 +234,13 @@ payroll_data AS (
       'STA' AS LegacySystem,
       CAST(emp.EMPLOYEE AS STRING) AS LegacyID,
       CAST(emp.EMPLOYEE AS STRING) AS LawsonLegacyID -- FIX: Populated
-    FROM `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.employee` emp
+    FROM `prj-dev-ss-oneerp.oneerp.run_date_tbl` rdt, `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.employee` emp
     JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.paemppos` pos
       ON
         CAST(emp.EMPLOYEE AS STRING) = CAST(pos.EMPLOYEE AS STRING)
         AND (
           DATE(pos.End_Date) = DATE '1753-01-01'
-          OR DATE(pos.End_Date) >= CURRENT_DATE())
+          OR DATE(pos.End_Date) >= rdt.Run_Date)
     JOIN `prj-pvt-oneerp-data-raw-78c9.lawson_stalexius.emdedmastr` edm_main
       ON
         CAST(emp.EMPLOYEE AS STRING) = CAST(edm_main.EMPLOYEE AS STRING)

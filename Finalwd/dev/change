@@ -1,13 +1,7 @@
 CASE
       WHEN (FORMAT_DATE ('%Y%m%d', ppos.actual_termination_date) >= '20260101' and ppos.actual_termination_date < rdt.Run_Date)
           OR mep.formerWorkerOverride = 'TRUE' THEN 'S_CONV'
-      WHEN sup.Organization_ID is not null THEN sup.Organization_ID
-      WHEN supinf.Organization_ID is not null THEN supinf.Organization_ID
-      WHEN sup2.Organization_ID is not null THEN sup2.Organization_ID
-      ELSE 'XWALK_ERROR'
-    END as Supervisory_Organization_Reference_ID,
-'' as Position_Request_Reason_Reference_ID,
-'' as Position_ID,
+      
 
 FROM prj-dev-ss-oneerp.oneerp.run_date_tbl rdt, prj-dev-ss-oneerp.vmmc_erp.per_all_assignments_f aaf
 

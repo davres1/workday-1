@@ -428,7 +428,7 @@ distrib.EFFDT = (select max(t2.EFFDT)
       distrib.Distribution_Balance,
       legacy.LegacySystem AS LegacySystem
     FROM
-      `prj-dev-ss-oneerp.vmmc_erp.vmc_pay_direct_deposit` distrib
+      `prj-dev-ss-oneerp.oneerp.run_date_tbl` rdt, `prj-dev-ss-oneerp.vmmc_erp.vmc_pay_direct_deposit` distrib
     LEFT JOIN
       `prj-pvt-oneerp-data-raw-78c9.vmmc_erp.per_all_people_f` emp
       ON emp.EMPLOYEE_NUMBER = distrib.Worker_Reference_ID
@@ -436,8 +436,8 @@ distrib.EFFDT = (select max(t2.EFFDT)
       ON emp.EMPLOYEE_NUMBER = legacy.LegacyEmployee -- Assumes EMPLOYEE_NUMBER is STRING/LegacyID is STRING
     WHERE
       emp.current_employee_flag = 'Y'
-      AND emp.effective_end_date >= CURRENT_DATE()
-      AND emp.effective_start_date <= CURRENT_DATE()
+      AND emp.effective_end_date >= rdt.Run_Date
+      AND emp.effective_start_date <= rdt.Run_Date
       AND legacy.LegacySystem = 'VMC'
   ),
   ranked_data_vmc AS (
