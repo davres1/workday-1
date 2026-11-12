@@ -52,7 +52,7 @@ legacy.LegacySystem,
   legacy.LegacyEmployee,  
   main.EmployeeID,
   main.PositionID,
-  FORMAT_DATE('%Y-%m-%d', SAFE.PARSE_DATE('%m/%e/%Y', main.PositionFillEffectiveDateorConversionPositionStartDate)),
+  CAST(SAFE.PARSE_DATE('%m/%e/%y', main.PositionFillEffectiveDateorConversionPositionStartDate) AS STRING),
   '',
   'Request_Compensation_Change_Conversion_Conversion',
   CAST(main.Column1 AS STRING),
@@ -86,7 +86,7 @@ legacy.LegacySystem,
   legacy.LegacyEmployee,
   main.EmployeeID,
   main.PositionID,
-  FORMAT_DATE('%Y-%m-%d', SAFE.PARSE_DATE('%m/%e/%Y', main.PositionFillEffectiveDateorConversionPositionStartDate)),
+  CAST(SAFE.PARSE_DATE('%m/%e/%y', main.PositionFillEffectiveDateorConversionPositionStartDate) AS STRING),
   '',
   'Request_Compensation_Change_Conversion_Conversion',
   CAST(main.Column1 AS STRING),
@@ -99,3 +99,4 @@ legacy.LegacySystem,
 FROM `prj-dev-ss-oneerp.oneerp.Comp_Allowance_DCDD` AS main
 LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` AS legacy
   ON main.EmployeeID = legacy.Employee_ID;
+

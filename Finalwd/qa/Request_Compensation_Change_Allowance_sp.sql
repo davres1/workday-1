@@ -21,7 +21,7 @@ BEGIN
     legacy.LegacyEmployee,  
     main.EmployeeID,
     main.PositionID,
-    CAST(SAFE.PARSE_DATE('%m/%e/%Y', main.PositionFillEffectiveDateorConversionPositionStartDate) AS STRING),
+    CAST(SAFE.PARSE_DATE('%m/%e/%y', main.PositionFillEffectiveDateorConversionPositionStartDate) AS STRING),
     'Request_Compensation_Change_Conversion_Conversion',
     CAST(main.Column1 AS STRING)
   FROM `prj-qa-ss-oneerp.oneerp.Comp_Allowance_DCDD` AS main
