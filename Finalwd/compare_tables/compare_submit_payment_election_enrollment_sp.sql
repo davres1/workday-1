@@ -117,11 +117,11 @@ BEGIN
       dev.`LegacyID`
     FROM dev
     WHERE NOT EXISTS (
-      SELECT 1 FROM qa WHERE dev.`LegacySystem` IS NOT DISTINCT FROM qa.`LegacySystem`
-      AND dev.`LegacyID` IS NOT DISTINCT FROM qa.`LegacyID`
-      AND dev.`Payment_Election_Higher_Order_Rule_ID` IS NOT DISTINCT FROM qa.`Payment_Election_Higher_Order_Rule_ID`
-      AND dev.`Payment_Election_Rule_ID` IS NOT DISTINCT FROM qa.`Payment_Election_Rule_ID`
-      AND dev.`Election_Order` IS NOT DISTINCT FROM qa.`Election_Order`
+      SELECT 1 FROM qa WHERE (dev.`LegacySystem` = qa.`LegacySystem` OR (dev.`LegacySystem` IS NULL AND qa.`LegacySystem` IS NULL))
+      AND (dev.`LegacyID` = qa.`LegacyID` OR (dev.`LegacyID` IS NULL AND qa.`LegacyID` IS NULL))
+      AND (dev.`Payment_Election_Higher_Order_Rule_ID` = qa.`Payment_Election_Higher_Order_Rule_ID` OR (dev.`Payment_Election_Higher_Order_Rule_ID` IS NULL AND qa.`Payment_Election_Higher_Order_Rule_ID` IS NULL))
+      AND (dev.`Payment_Election_Rule_ID` = qa.`Payment_Election_Rule_ID` OR (dev.`Payment_Election_Rule_ID` IS NULL AND qa.`Payment_Election_Rule_ID` IS NULL))
+      AND (dev.`Election_Order` = qa.`Election_Order` OR (dev.`Election_Order` IS NULL AND qa.`Election_Order` IS NULL))
     )
   ),
   deleted_records AS (
@@ -171,11 +171,11 @@ BEGIN
       qa.`LegacyID`
     FROM qa
     WHERE NOT EXISTS (
-      SELECT 1 FROM dev WHERE dev.`LegacySystem` IS NOT DISTINCT FROM qa.`LegacySystem`
-      AND dev.`LegacyID` IS NOT DISTINCT FROM qa.`LegacyID`
-      AND dev.`Payment_Election_Higher_Order_Rule_ID` IS NOT DISTINCT FROM qa.`Payment_Election_Higher_Order_Rule_ID`
-      AND dev.`Payment_Election_Rule_ID` IS NOT DISTINCT FROM qa.`Payment_Election_Rule_ID`
-      AND dev.`Election_Order` IS NOT DISTINCT FROM qa.`Election_Order`
+      SELECT 1 FROM dev WHERE (dev.`LegacySystem` = qa.`LegacySystem` OR (dev.`LegacySystem` IS NULL AND qa.`LegacySystem` IS NULL))
+      AND (dev.`LegacyID` = qa.`LegacyID` OR (dev.`LegacyID` IS NULL AND qa.`LegacyID` IS NULL))
+      AND (dev.`Payment_Election_Higher_Order_Rule_ID` = qa.`Payment_Election_Higher_Order_Rule_ID` OR (dev.`Payment_Election_Higher_Order_Rule_ID` IS NULL AND qa.`Payment_Election_Higher_Order_Rule_ID` IS NULL))
+      AND (dev.`Payment_Election_Rule_ID` = qa.`Payment_Election_Rule_ID` OR (dev.`Payment_Election_Rule_ID` IS NULL AND qa.`Payment_Election_Rule_ID` IS NULL))
+      AND (dev.`Election_Order` = qa.`Election_Order` OR (dev.`Election_Order` IS NULL AND qa.`Election_Order` IS NULL))
     )
   ),
   matched_records AS (
@@ -306,11 +306,11 @@ BEGIN
     dev.`LegacySystem`,
     dev.`LegacyID`
     FROM dev
-    INNER JOIN qa ON dev.`LegacySystem` IS NOT DISTINCT FROM qa.`LegacySystem`
-      AND dev.`LegacyID` IS NOT DISTINCT FROM qa.`LegacyID`
-      AND dev.`Payment_Election_Higher_Order_Rule_ID` IS NOT DISTINCT FROM qa.`Payment_Election_Higher_Order_Rule_ID`
-      AND dev.`Payment_Election_Rule_ID` IS NOT DISTINCT FROM qa.`Payment_Election_Rule_ID`
-      AND dev.`Election_Order` IS NOT DISTINCT FROM qa.`Election_Order`
+    INNER JOIN qa ON (dev.`LegacySystem` = qa.`LegacySystem` OR (dev.`LegacySystem` IS NULL AND qa.`LegacySystem` IS NULL))
+      AND (dev.`LegacyID` = qa.`LegacyID` OR (dev.`LegacyID` IS NULL AND qa.`LegacyID` IS NULL))
+      AND (dev.`Payment_Election_Higher_Order_Rule_ID` = qa.`Payment_Election_Higher_Order_Rule_ID` OR (dev.`Payment_Election_Higher_Order_Rule_ID` IS NULL AND qa.`Payment_Election_Higher_Order_Rule_ID` IS NULL))
+      AND (dev.`Payment_Election_Rule_ID` = qa.`Payment_Election_Rule_ID` OR (dev.`Payment_Election_Rule_ID` IS NULL AND qa.`Payment_Election_Rule_ID` IS NULL))
+      AND (dev.`Election_Order` = qa.`Election_Order` OR (dev.`Election_Order` IS NULL AND qa.`Election_Order` IS NULL))
   ),
   changed_records AS (
     SELECT 'CHG' AS Change_Type, matched_records.*

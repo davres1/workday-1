@@ -61,10 +61,10 @@ BEGIN
       dev.`Expected_End_Date`
     FROM dev
     WHERE NOT EXISTS (
-      SELECT 1 FROM qa WHERE dev.`Legacy_System` IS NOT DISTINCT FROM qa.`Legacy_System`
-      AND dev.`Legacy_ID` IS NOT DISTINCT FROM qa.`Legacy_ID`
-      AND dev.`Position_ID` IS NOT DISTINCT FROM qa.`Position_ID`
-      AND dev.`Allowance_Plan_ID` IS NOT DISTINCT FROM qa.`Allowance_Plan_ID`
+      SELECT 1 FROM qa WHERE (dev.`Legacy_System` = qa.`Legacy_System` OR (dev.`Legacy_System` IS NULL AND qa.`Legacy_System` IS NULL))
+      AND (dev.`Legacy_ID` = qa.`Legacy_ID` OR (dev.`Legacy_ID` IS NULL AND qa.`Legacy_ID` IS NULL))
+      AND (dev.`Position_ID` = qa.`Position_ID` OR (dev.`Position_ID` IS NULL AND qa.`Position_ID` IS NULL))
+      AND (dev.`Allowance_Plan_ID` = qa.`Allowance_Plan_ID` OR (dev.`Allowance_Plan_ID` IS NULL AND qa.`Allowance_Plan_ID` IS NULL))
     )
   ),
   deleted_records AS (
@@ -86,10 +86,10 @@ BEGIN
       qa.`Expected_End_Date`
     FROM qa
     WHERE NOT EXISTS (
-      SELECT 1 FROM dev WHERE dev.`Legacy_System` IS NOT DISTINCT FROM qa.`Legacy_System`
-      AND dev.`Legacy_ID` IS NOT DISTINCT FROM qa.`Legacy_ID`
-      AND dev.`Position_ID` IS NOT DISTINCT FROM qa.`Position_ID`
-      AND dev.`Allowance_Plan_ID` IS NOT DISTINCT FROM qa.`Allowance_Plan_ID`
+      SELECT 1 FROM dev WHERE (dev.`Legacy_System` = qa.`Legacy_System` OR (dev.`Legacy_System` IS NULL AND qa.`Legacy_System` IS NULL))
+      AND (dev.`Legacy_ID` = qa.`Legacy_ID` OR (dev.`Legacy_ID` IS NULL AND qa.`Legacy_ID` IS NULL))
+      AND (dev.`Position_ID` = qa.`Position_ID` OR (dev.`Position_ID` IS NULL AND qa.`Position_ID` IS NULL))
+      AND (dev.`Allowance_Plan_ID` = qa.`Allowance_Plan_ID` OR (dev.`Allowance_Plan_ID` IS NULL AND qa.`Allowance_Plan_ID` IS NULL))
     )
   ),
   matched_records AS (
@@ -138,10 +138,10 @@ BEGIN
     dev.`Allowance_Frequency_ID`,
     dev.`Expected_End_Date`
     FROM dev
-    INNER JOIN qa ON dev.`Legacy_System` IS NOT DISTINCT FROM qa.`Legacy_System`
-      AND dev.`Legacy_ID` IS NOT DISTINCT FROM qa.`Legacy_ID`
-      AND dev.`Position_ID` IS NOT DISTINCT FROM qa.`Position_ID`
-      AND dev.`Allowance_Plan_ID` IS NOT DISTINCT FROM qa.`Allowance_Plan_ID`
+    INNER JOIN qa ON (dev.`Legacy_System` = qa.`Legacy_System` OR (dev.`Legacy_System` IS NULL AND qa.`Legacy_System` IS NULL))
+      AND (dev.`Legacy_ID` = qa.`Legacy_ID` OR (dev.`Legacy_ID` IS NULL AND qa.`Legacy_ID` IS NULL))
+      AND (dev.`Position_ID` = qa.`Position_ID` OR (dev.`Position_ID` IS NULL AND qa.`Position_ID` IS NULL))
+      AND (dev.`Allowance_Plan_ID` = qa.`Allowance_Plan_ID` OR (dev.`Allowance_Plan_ID` IS NULL AND qa.`Allowance_Plan_ID` IS NULL))
   ),
   changed_records AS (
     SELECT 'CHG' AS Change_Type, matched_records.*

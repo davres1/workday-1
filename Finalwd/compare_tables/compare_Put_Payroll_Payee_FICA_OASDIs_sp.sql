@@ -69,9 +69,9 @@ BEGIN
       dev.`LawsonLegacyID`
     FROM dev
     WHERE NOT EXISTS (
-      SELECT 1 FROM qa WHERE dev.`LegacySystem` IS NOT DISTINCT FROM qa.`LegacySystem`
-      AND dev.`LegacyID` IS NOT DISTINCT FROM qa.`LegacyID`
-      AND dev.`Position_Reference_ID` IS NOT DISTINCT FROM qa.`Position_Reference_ID`
+      SELECT 1 FROM qa WHERE (dev.`LegacySystem` = qa.`LegacySystem` OR (dev.`LegacySystem` IS NULL AND qa.`LegacySystem` IS NULL))
+      AND (dev.`LegacyID` = qa.`LegacyID` OR (dev.`LegacyID` IS NULL AND qa.`LegacyID` IS NULL))
+      AND (dev.`Position_Reference_ID` = qa.`Position_Reference_ID` OR (dev.`Position_Reference_ID` IS NULL AND qa.`Position_Reference_ID` IS NULL))
     )
   ),
   deleted_records AS (
@@ -97,9 +97,9 @@ BEGIN
       qa.`LawsonLegacyID`
     FROM qa
     WHERE NOT EXISTS (
-      SELECT 1 FROM dev WHERE dev.`LegacySystem` IS NOT DISTINCT FROM qa.`LegacySystem`
-      AND dev.`LegacyID` IS NOT DISTINCT FROM qa.`LegacyID`
-      AND dev.`Position_Reference_ID` IS NOT DISTINCT FROM qa.`Position_Reference_ID`
+      SELECT 1 FROM dev WHERE (dev.`LegacySystem` = qa.`LegacySystem` OR (dev.`LegacySystem` IS NULL AND qa.`LegacySystem` IS NULL))
+      AND (dev.`LegacyID` = qa.`LegacyID` OR (dev.`LegacyID` IS NULL AND qa.`LegacyID` IS NULL))
+      AND (dev.`Position_Reference_ID` = qa.`Position_Reference_ID` OR (dev.`Position_Reference_ID` IS NULL AND qa.`Position_Reference_ID` IS NULL))
     )
   ),
   matched_records AS (
@@ -162,9 +162,9 @@ BEGIN
     dev.`LegacyID`,
     dev.`LawsonLegacyID`
     FROM dev
-    INNER JOIN qa ON dev.`LegacySystem` IS NOT DISTINCT FROM qa.`LegacySystem`
-      AND dev.`LegacyID` IS NOT DISTINCT FROM qa.`LegacyID`
-      AND dev.`Position_Reference_ID` IS NOT DISTINCT FROM qa.`Position_Reference_ID`
+    INNER JOIN qa ON (dev.`LegacySystem` = qa.`LegacySystem` OR (dev.`LegacySystem` IS NULL AND qa.`LegacySystem` IS NULL))
+      AND (dev.`LegacyID` = qa.`LegacyID` OR (dev.`LegacyID` IS NULL AND qa.`LegacyID` IS NULL))
+      AND (dev.`Position_Reference_ID` = qa.`Position_Reference_ID` OR (dev.`Position_Reference_ID` IS NULL AND qa.`Position_Reference_ID` IS NULL))
   ),
   changed_records AS (
     SELECT 'CHG' AS Change_Type, matched_records.*
