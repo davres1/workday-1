@@ -1,3 +1,6 @@
+CREATE OR REPLACE PROCEDURE `prj-dev-ss-oneerp.oneerp.prc_Put_Payroll_Payee_FICA_OASDI_sp`()
+OPTIONS(strict_mode=false)
+BEGIN
 -- =============================================================================
 -- FIXED: Moving DH CTEs to the top level
 -- =============================================================================
@@ -376,3 +379,4 @@ SELECT
   OASDI_Reason_for_Exemption_Reference_ID_Type
 FROM `oneerp.process_Put_Payroll_Payee_FICA_OASDIs`
 WHERE Exempt_from_OASDI IS NOT NULL;
+END;

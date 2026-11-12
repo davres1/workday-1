@@ -1,3 +1,6 @@
+CREATE OR REPLACE PROCEDURE `prj-dev-ss-oneerp.oneerp.prc_Request_submit_payment_election_enrollment_sp`()
+OPTIONS(strict_mode=false)
+BEGIN
 -- Initialize process table
 DROP TABLE IF EXISTS `prj-dev-ss-oneerp.oneerp.process_submit_payment_election_enrollment`;
 CREATE TABLE `prj-dev-ss-oneerp.oneerp.process_submit_payment_election_enrollment`(
@@ -1763,3 +1766,4 @@ CROSS JOIN (
       ELSE 4
   END,
   Election_Order;
+END;

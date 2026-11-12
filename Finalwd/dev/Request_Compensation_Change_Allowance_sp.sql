@@ -1,3 +1,6 @@
+CREATE OR REPLACE PROCEDURE `prj-dev-ss-oneerp.oneerp.prc_Request_Compensation_Change_Allowance_sp`()
+OPTIONS(strict_mode=false)
+BEGIN
 DROP TABLE IF EXISTS `oneerp.process_request_comp_change_Allowance`;
 CREATE TABLE `oneerp.process_request_comp_change_Allowance`(
 `Legacy_System` STRING,
@@ -99,4 +102,4 @@ legacy.LegacySystem,
 FROM `prj-dev-ss-oneerp.oneerp.Comp_Allowance_DCDD` AS main
 LEFT JOIN `prj-dev-ss-oneerp.oneerp.process_addonly_employee` AS legacy
   ON main.EmployeeID = legacy.Employee_ID;
-
+END;
